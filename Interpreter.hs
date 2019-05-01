@@ -1,7 +1,7 @@
 module Interpreter where
 
 import Control.Monad.Identity
-import Control.Monad.Error
+import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer
@@ -14,78 +14,64 @@ import AbsCH
 
 import ErrM
 
-type MyMonad a = ReaderT Env (ErrorT String (WriterT [String ] (StateT Integer IO))) a
+import Evaluator
 
-type Name = String
-data Value = IntVal Integer | FunVal Env Name Expr deriving (Show)
-type Env = Map.Map Name Value
+declare :: Item -> MyMonad () -> MyMonad ()
+declare (Init (Ident n) e) m = do
+  e' <- evalExpr e
+  local (Map.insert n e') m
 
-tick :: (Num s, MonadState s m) => m ()
-tick = do
-  st <- get
-  put (st + 1)
+incIntVal :: Value -> Value
+incIntVal (IntVal i) = IntVal (i + 1)
 
-evalExpr :: Expr -> MyMonad Value
-evalExpr (ELitInt i) = do
-  tick
-  liftIO $ print i
-  return $ IntVal i
+insertPair :: Env -> (Arg, Value) -> Env
+insertPair m (Arg _ (Ident name), value) = Map.insert name value m
 
-evalExpr (EVar (Ident n)) = do
-  tick
-  tell [n]
+createFun :: Name -> Env -> [Arg] -> [Stmt] -> Value
+createFun name env args body = fun
+  where
+    fun = FunVal $ \argVals -> local (const (Map.insert name fun (foldl insertPair env (zip args argVals)))) $ do
+      interpretStmts body
+      pure (IntVal 4) --TODO
+      {- get return value -}
+
+interpretStmts :: [Stmt] -> MyMonad ()
+interpretStmts [] = pure ()
+interpretStmts ((FnDef _ (Ident name) args (Block body)) : rest) = do
+  env <- ask
+  local (Map.insert name (createFun name env args body)) $ interpretStmts rest
+interpretStmts ((Decl _ decls) : rest) = foldr declare (interpretStmts rest) decls
+interpretStmts (stmt : stmts) = interpretStmt stmt >> interpretStmts stmts
+
+interpretStmt :: Stmt -> MyMonad ()
+interpretStmt (BStmt (Block stmts)) = interpretStmts stmts
+
+interpretStmt (Incr (Ident n)) = do
   env <- ask
   case Map.lookup n env of
-    Nothing -> throwError ("unbound variable: " ++ n)
-    Just val -> return val
+    Nothing -> throwError ("variable " ++ n ++ " not defined")
+    Just val -> case val of
+      (IntVal i) -> local (Map.adjust incIntVal n) (return ())
+      _ -> throwError "type error in incrementation"
 
-evalExpr (EAdd e1 Plus e2) = do
-  tick
-  e1' <- evalExpr e1
-  e2' <- evalExpr e2
-  case (e1', e2') of
-    (IntVal i1, IntVal i2) -> return $ IntVal (i1 + i2)
-    _ -> throwError "type error in addition"
-{-
-eval6 (Abs n e) = do
-  tick
-  env <- ask
-  return $ FunVal env n e
-
-eval6 (App e1 e2 ) = do
-  tick
-  val1 <- eval6 e1
-  val2 <- eval6 e2
-  case val1 of
-    FunVal env0 n body -> local (const (Map.insert n val2 env0)) (eval6 body)
-    _ -> throwError "type error in application"
--}
-
-interpret :: Stmt -> MyMonad Value
-interpret (SExp e) = evalExpr e
-
-interpret (Decl ty items) = do  -- Maybe error when variable was already declared
-  local (const (Map.insert n val2 env0)) (eval6 body)
-
-interpret ()
 {-
 interpretProg :: Program -> MyMonad Value
 interpretProg (Program xs) = 
 -}
-runInterpret :: Env -> Integer -> MyMonad a -> IO ((Either String a, [String]), Integer)
-runInterpret env st ev = runStateT (runWriterT (runErrorT (runReaderT ev env))) st
 
-exampleStmt = SExp (EAdd (ELitInt 7) Plus (ELitInt 5))
+runInterpret :: Env -> MyMonad a -> IO (Either String a, [String])
+runInterpret env ev = runWriterT (runExceptT (runReaderT ev env))
+
 exampleProg = Program [Decl Int [Init (Ident "x") (ELitInt 5)],Decl Int [Init (Ident "y") (ELitInt 7)],Decl Int [Init (Ident "z") (EAdd (EVar (Ident "x")) Plus (EVar (Ident "y")))]]
 exampleExpr1 = ELitInt 5
 exampleExpr2 = EAdd (ELitInt 7) Plus (ELitInt 5)
+exampleExpr3 = EAdd (ELitInt 7) Minus (ELitInt 5)
+exampleExpr4 = Neg ELitTrue
+exampleExpr5 = EMul (ELitInt 7) Div (ELitInt 5)
+exampleExpr6 = EMul (ELitInt 7) Times (ELitInt 5)
 
---runInterp Map.empty 0 (interp exampleExp)
-{-
-main = do
-  interact calc
-  putStrLn ""
+exampleStmts1 = [Decl Int [Init (Ident "testVar") (ELitInt 7)],Incr (Ident "testVar")]
 
-calc s =
-  let Ok e = pExp (myLexer s) in show (interpret e)
--}
+exampleStmt1 = SExp (EAdd (ELitInt 7) Plus (ELitInt 5))
+
+-- To run: runInterpret Map.empty (interpretStmts exampleStmts1)
