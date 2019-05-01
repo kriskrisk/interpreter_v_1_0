@@ -40,20 +40,12 @@ evalExpr (EVar (Ident n)) = do
 evalExpr ELitTrue = return (BoolVal True)
 
 evalExpr ELitFalse = return (BoolVal False)
-{-
-recreateEnv :: Env -> [Expr] -> Env -> Env
-recreateEnv oldEnv exprs _ = Map.insert "_fnArgs" (map evalExpr exprs) oldEnv
-evalBody :: Stmt -> MyMonad Value
-evalBody body = do
-  interpStmt body
-  fnRet <- asks (Map.lookup "_fnRet_")
-  return fnRet
-evalExpr (EApp (Ident n) args) = do
-  fn <- asks (Map.lookup n)
-  case fn of
-    FunVal oldEnv n body -> local (recreateEnv oldEnv args) (evalBody body)
-    _ -> throwError "type error in application"
--}
+
+evalExpr (EApp (Ident name) args) = do
+  Just (FunVal fun) <- asks (Map.lookup name)
+  argVals <- mapM evalExpr args
+  fun argVals
+
 evalExpr (EString s) = return (StrVal s)
 
 evalExpr (Neg e) = do

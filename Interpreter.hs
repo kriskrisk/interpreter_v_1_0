@@ -24,6 +24,9 @@ declare (Init (Ident n) e) m = do
 incIntVal :: Value -> Value
 incIntVal (IntVal i) = IntVal (i + 1)
 
+applyToInt :: (Integer -> Integer) -> Value -> Value
+applyToInt fun (IntVal i) = IntVal (fun i)
+
 insertPair :: Env -> (Arg, Value) -> Env
 insertPair m (Arg _ (Ident name), value) = Map.insert name value m
 
@@ -45,7 +48,7 @@ interpretStmts (stmt : stmts) = interpretStmt stmt >> interpretStmts stmts
 
 interpretStmt :: Stmt -> MyMonad ()
 interpretStmt (BStmt (Block stmts)) = interpretStmts stmts
-
+{-
 interpretStmt (Incr (Ident n)) = do
   env <- ask
   case Map.lookup n env of
@@ -54,9 +57,15 @@ interpretStmt (Incr (Ident n)) = do
       (IntVal i) -> local (Map.adjust incIntVal n) (return ())
       _ -> throwError "type error in incrementation"
 
-{-
-interpretProg :: Program -> MyMonad Value
-interpretProg (Program xs) = 
+interpretStmt (Decr (Ident name)) = do
+  res <- asks (Map.lookup name)
+  case res of
+    Nothing -> throwError ("variable " ++ name ++ " not defined")
+    Just (IntVal i) -> local (Map.adjust (applyToInt (+1)) name) (return ())
+
+interpretStmt (Decr (Ident name)) = do
+  Just ioref <- asks (Map.lookup name)
+  liftIO . modifyIORef' ioref $ \(IntVal i) -> IntVal (i+1)
 -}
 
 runInterpret :: Env -> MyMonad a -> IO (Either String a, [String])
