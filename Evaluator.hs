@@ -6,6 +6,7 @@ import Control.Monad.Reader
 import Control.Monad.Writer
 import Data.Maybe
 import qualified Data.Map as Map
+import Data.IORef
 
 import LexCH
 import ParCH
@@ -13,11 +14,10 @@ import AbsCH
 
 import ErrM
 
+type Env = Map.Map Ident (IORef Value)
 type MyMonad a = ReaderT Env (ExceptT String (WriterT [String] IO)) a
 
-type Name = String
 data Value = IntVal Integer | BoolVal Bool | StrVal String | FunVal ([Value] -> MyMonad Value)
-type Env = Map.Map Name Value
 
 instance Show Value where
   show (IntVal x) = "IntVal " ++ show x
@@ -30,19 +30,22 @@ evalExpr (ELitInt i) = do
   liftIO $ print i
   return $ IntVal i
 
-evalExpr (EVar (Ident n)) = do
-  tell [n]
-  var <- asks (Map.lookup n)
-  case var of
-    Nothing -> throwError ("unbound variable: " ++ n)
-    Just val -> return val
+evalExpr (EVar ident) = do
+  Just val <- asks (Map.lookup ident)
+  liftIO (readIORef val)
 
 evalExpr ELitTrue = return (BoolVal True)
 
 evalExpr ELitFalse = return (BoolVal False)
 
-evalExpr (EApp (Ident name) args) = do
-  Just (FunVal fun) <- asks (Map.lookup name)
+evalExpr (EApp (Ident "print") (arg:args)) = do
+  StrVal s <- evalExpr arg
+  tell[s]
+  return (IntVal 1)
+
+evalExpr (EApp ident args) = do
+  Just ioref <- asks (Map.lookup ident)
+  FunVal fun <- (liftIO . readIORef) ioref
   argVals <- mapM evalExpr args
   fun argVals
 
