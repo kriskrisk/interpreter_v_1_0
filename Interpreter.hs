@@ -4,6 +4,7 @@ import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.Writer
+import Control.Monad.Cont
 import Data.Maybe
 import qualified Data.Map as Map
 import Data.IORef
@@ -36,10 +37,11 @@ createFun ident env args body = fun
   where
     fun = FunVal $ \argVals -> do
       argVars <- liftIO $ mapM newIORef argVals
-      local (const $ foldl insertPair env $ zip args argVars) $ do
-        interpretStmts body
-        pure (IntVal 4) --TODO
-        {- get return value -}
+      local (const $ foldl insertPair env $ zip args argVars) $ callCC $ \ret -> do
+        retFun <- liftIO $ newIORef (RetFun ret)
+        local (Map.insert (Ident "_ret_") retFun) $ do
+          interpretStmts body
+          throwError "missing return statement"
 
 interpretStmts :: [Stmt] -> MyMonad ()
 interpretStmts [] = pure ()
@@ -61,10 +63,16 @@ interpretStmt (Decr ident) = do
   Just ioref <- asks (Map.lookup ident)
   liftIO . modifyIORef' ioref $ \(IntVal i) -> IntVal (i - 1)
 
+interpretStmt (Ret expr) = do
+  Just ioref <- asks (Map.lookup (Ident "_ret_"))
+  RetFun fun <- liftIO $ readIORef ioref
+  val <- evalExpr expr
+  fun val
 
-runInterpret :: Env -> MyMonad a -> IO (Either String a, [String])
-runInterpret env ev = runWriterT (runExceptT (runReaderT ev env))
-
+{-
+runInterpret :: Env -> MyMonad a -> IO Value--(Either String a, [String])
+runInterpret env ev = runContT (runWriterT (runExceptT (runReaderT ev env))) id
+-}
 exampleProg = Program [Decl Int [Init (Ident "x") (ELitInt 5)],Decl Int [Init (Ident "y") (ELitInt 7)],Decl Int [Init (Ident "z") (EAdd (EVar (Ident "x")) Plus (EVar (Ident "y")))]]
 exampleExpr1 = ELitInt 5
 exampleExpr2 = EAdd (ELitInt 7) Plus (ELitInt 5)

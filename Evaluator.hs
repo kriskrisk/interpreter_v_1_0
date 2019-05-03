@@ -4,6 +4,7 @@ import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.Writer
+import Control.Monad.Cont
 import Data.Maybe
 import qualified Data.Map as Map
 import Data.IORef
@@ -15,9 +16,9 @@ import AbsCH
 import ErrM
 
 type Env = Map.Map Ident (IORef Value)
-type MyMonad a = ReaderT Env (ExceptT String (WriterT [String] IO)) a
+type MyMonad a = ReaderT Env (ExceptT String (WriterT [String] (ContT Value IO))) a
 
-data Value = IntVal Integer | BoolVal Bool | StrVal String | FunVal ([Value] -> MyMonad Value)
+data Value = IntVal Integer | BoolVal Bool | StrVal String | FunVal ([Value] -> MyMonad Value) | RetFun (Value -> MyMonad ())
 
 instance Show Value where
   show (IntVal x) = "IntVal " ++ show x
@@ -37,12 +38,12 @@ evalExpr (EVar ident) = do
 evalExpr ELitTrue = return (BoolVal True)
 
 evalExpr ELitFalse = return (BoolVal False)
-
+{-
 evalExpr (EApp (Ident "print") (arg:args)) = do
   StrVal s <- evalExpr arg
   tell[s]
   return (IntVal 1)
-
+-}
 evalExpr (EApp ident args) = do
   Just ioref <- asks (Map.lookup ident)
   FunVal fun <- (liftIO . readIORef) ioref
