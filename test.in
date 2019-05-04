@@ -4,6 +4,7 @@ int a = 2;
 int b = 6;
 int c = a + b;
 c++;
+//int d = c / 0;
 
 // Prints:
 print("[TEST]: print")
@@ -15,6 +16,8 @@ print("[TEST]: functions")
 void foo1(int q) {
 	print(q + 5);
 	print(q * 5);
+	return;
+	print("After return...!")
 }
 foo1(6);
 
@@ -29,6 +32,18 @@ void foo3(int q) {
 }
 foo3(a);
 print(a)
+
+// Passing argument as reference:
+print("[TEST]: passing argument as reference")
+int to_change = 1;
+print(to_change)
+void changer(int p) {
+	p++;
+	print(p);
+}
+changer(to_change);
+print("Should be 2:")
+print(to_change)
 
 // While:
 print("[TEST]: while")

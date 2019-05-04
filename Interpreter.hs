@@ -85,7 +85,10 @@ interpretStmt (Ret expr) = do
   val <- evalExpr expr
   fun val
 
---interpretStmt VRet = return ()
+interpretStmt VRet = do
+  Just ioref <- asks (Map.lookup (Ident "$ret$"))
+  RetFun fun <- liftIO $ readIORef ioref
+  fun VoidVal
 
 interpretStmt (Cond expr stmt) = do
   cond <- evalExpr expr

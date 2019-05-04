@@ -66,7 +66,9 @@ evalExpr (EMul e1 op e2) = do
     (IntVal i1, IntVal i2) -> 
       case op of
         Times -> return $ IntVal (i1 * i2)
-        Div -> return $ IntVal (i1 `quot` i2)
+        Div -> case i2 of
+          0 -> throwError "division by zero error"
+          _ -> return $ IntVal (i1 `quot` i2)
         Mod -> return $ IntVal (i1 `mod` i2)
     _ -> throwError "type error in multiplication"
 
