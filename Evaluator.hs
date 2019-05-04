@@ -26,10 +26,12 @@ data Value = IntVal Integer
            | RetFun (Value -> MyMonad ())
 
 instance Show Value where
-  show (IntVal x) = "IntVal " ++ show x
-  show (BoolVal x) = "BoolVal " ++ show x
-  show (StrVal x) = "StrVal " ++ show x
-  show (FunVal x) = "FunVal <some function>"
+  show (IntVal x) = show x
+  show (BoolVal x) = show x
+  show (StrVal x) = show x
+  show VoidVal = "<void value>"
+  show (FunVal x) = "<some function>"
+  show (RetFun x) = "<return function>"
 
 evalExpr :: Expr -> MyMonad Value
 evalExpr (ELitInt i) = do

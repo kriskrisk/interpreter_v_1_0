@@ -46,6 +46,15 @@ createFun ident env args body = fun
           interpretStmts body
           return VoidVal
 
+loop :: Expr -> Stmt -> MyMonad ()
+loop expr stmt = do
+  BoolVal val <- evalExpr expr
+  if val
+    then do 
+      interpretStmt stmt
+      loop expr stmt
+  else return ()
+
 interpretStmts :: [Stmt] -> MyMonad ()
 interpretStmts [] = pure ()
 interpretStmts ((FnDef _ ident args (Block body)) : rest) = do
@@ -56,7 +65,11 @@ interpretStmts ((Decl _ decls) : rest) = foldr declare (interpretStmts rest) dec
 interpretStmts (stmt : stmts) = interpretStmt stmt >> interpretStmts stmts
 
 interpretStmt :: Stmt -> MyMonad ()
+interpretStmt Empty = return ()
+
 interpretStmt (BStmt (Block stmts)) = interpretStmts stmts
+
+--interpretStmt (Ass ident expr) = return ()
 
 interpretStmt (Incr ident) = do
   Just ioref <- asks (Map.lookup ident)
@@ -72,9 +85,29 @@ interpretStmt (Ret expr) = do
   val <- evalExpr expr
   fun val
 
+--interpretStmt VRet = return ()
+
+interpretStmt (Cond expr stmt) = do
+  cond <- evalExpr expr
+  case cond of
+    BoolVal True -> interpretStmt stmt
+    BoolVal False -> return ()
+
+interpretStmt (CondElse expr stmtTrue stmtFalse) = do
+  cond <- evalExpr expr
+  case cond of
+    BoolVal True -> interpretStmt stmtTrue
+    BoolVal False -> interpretStmt stmtFalse
+
+interpretStmt (While expr stmt) = loop expr stmt
+
 interpretStmt (Print expr) = do
-  StrVal s <- evalExpr expr
-  liftIO $ print s
+  val <- evalExpr expr
+  liftIO $ print $ val
+
+interpretStmt (SExp expr) = do
+  val <- evalExpr expr
+  return ()
 
 
 printResult :: Either String () -> IO Value
@@ -94,10 +127,6 @@ main = do
   program <- hGetContents fd
   let Ok prog = pProgram (myLexer program) in interpretProg prog
 
-{-
-runInterpret :: Env -> MyMonad a -> IO Value--(Either String a, [String])
-runInterpret env ev = runContT (runWriterT (runExceptT (runReaderT ev env))) id
--}
 {-
 exampleProg = Program [Decl Int [Init (Ident "x") (ELitInt 5)],Decl Int [Init (Ident "y") (ELitInt 7)],Decl Int [Init (Ident "z") (EAdd (EVar (Ident "x")) Plus (EVar (Ident "y")))]]
 exampleExpr1 = ELitInt 5

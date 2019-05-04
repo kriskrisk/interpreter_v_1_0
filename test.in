@@ -1,4 +1,39 @@
+// Simple arithmetics:
+print("[TEST]: arithmetic")
 int a = 2;
 int b = 6;
 int c = a + b;
+c++;
+
+// Prints:
+print("[TEST]: print")
 print("Hello world!");
+print(c);
+
+// Functions:
+print("[TEST]: functions")
+void foo1(int q) {
+	print(q + 5);
+	print(q * 5);
+}
+foo1(6);
+
+void foo2() {
+	return 5;
+}
+print(foo2());
+
+void foo3(int q) {
+	q++;
+	print(q);
+}
+foo3(a);
+print(a)
+
+// While:
+print("[TEST]: while")
+int i = 0;
+while (i < 5) {
+	print("Loopin'!");
+	i++;
+}
