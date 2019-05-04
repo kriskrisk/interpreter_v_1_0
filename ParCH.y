@@ -38,14 +38,15 @@ import ErrM
   'false' { PT _ (TS _ 23) }
   'if' { PT _ (TS _ 24) }
   'int' { PT _ (TS _ 25) }
-  'return' { PT _ (TS _ 26) }
-  'string' { PT _ (TS _ 27) }
-  'true' { PT _ (TS _ 28) }
-  'void' { PT _ (TS _ 29) }
-  'while' { PT _ (TS _ 30) }
-  '{' { PT _ (TS _ 31) }
-  '||' { PT _ (TS _ 32) }
-  '}' { PT _ (TS _ 33) }
+  'print' { PT _ (TS _ 26) }
+  'return' { PT _ (TS _ 27) }
+  'string' { PT _ (TS _ 28) }
+  'true' { PT _ (TS _ 29) }
+  'void' { PT _ (TS _ 30) }
+  'while' { PT _ (TS _ 31) }
+  '{' { PT _ (TS _ 32) }
+  '||' { PT _ (TS _ 33) }
+  '}' { PT _ (TS _ 34) }
 
   L_ident {PT _ (TV $$)}
   L_integ {PT _ (TI $$)}
@@ -139,6 +140,9 @@ Stmt :: {
 }
 | 'while' '(' Expr ')' Stmt {
   AbsCH.While $3 $5 
+}
+| 'print' '(' Expr ')' {
+  AbsCH.Print $3 
 }
 | Expr ';' {
   AbsCH.SExp $1 

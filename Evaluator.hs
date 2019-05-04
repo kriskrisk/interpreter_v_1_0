@@ -16,9 +16,14 @@ import AbsCH
 import ErrM
 
 type Env = Map.Map Ident (IORef Value)
-type MyMonad a = ReaderT Env (ExceptT String (WriterT [String] (ContT Value IO))) a
+type MyMonad a = ReaderT Env (ExceptT String (ContT Value IO)) a
 
-data Value = IntVal Integer | BoolVal Bool | StrVal String | FunVal ([Value] -> MyMonad Value) | RetFun (Value -> MyMonad ())
+data Value = IntVal Integer
+           | BoolVal Bool
+           | StrVal String
+           | VoidVal
+           | FunVal ([Value] -> MyMonad Value)
+           | RetFun (Value -> MyMonad ())
 
 instance Show Value where
   show (IntVal x) = "IntVal " ++ show x
@@ -28,7 +33,6 @@ instance Show Value where
 
 evalExpr :: Expr -> MyMonad Value
 evalExpr (ELitInt i) = do
-  liftIO $ print i
   return $ IntVal i
 
 evalExpr (EVar ident) = do
@@ -38,12 +42,7 @@ evalExpr (EVar ident) = do
 evalExpr ELitTrue = return (BoolVal True)
 
 evalExpr ELitFalse = return (BoolVal False)
-{-
-evalExpr (EApp (Ident "print") (arg:args)) = do
-  StrVal s <- evalExpr arg
-  tell[s]
-  return (IntVal 1)
--}
+
 evalExpr (EApp ident args) = do
   Just ioref <- asks (Map.lookup ident)
   FunVal fun <- (liftIO . readIORef) ioref

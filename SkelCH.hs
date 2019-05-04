@@ -32,6 +32,7 @@ transStmt x = case x of
   Cond expr stmt -> failure x
   CondElse expr stmt1 stmt2 -> failure x
   While expr stmt -> failure x
+  Print expr -> failure x
   SExp expr -> failure x
 transBlock :: Block -> Result
 transBlock x = case x of

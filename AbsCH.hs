@@ -27,6 +27,7 @@ data Stmt
     | Cond Expr Stmt
     | CondElse Expr Stmt Stmt
     | While Expr Stmt
+    | Print Expr
     | SExp Expr
   deriving (Eq, Ord, Show, Read)
 

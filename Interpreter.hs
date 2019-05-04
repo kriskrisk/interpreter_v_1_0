@@ -9,6 +9,9 @@ import Data.Maybe
 import qualified Data.Map as Map
 import Data.IORef
 
+import System.IO
+import System.Environment
+
 import LexCH
 import ParCH
 import AbsCH
@@ -39,9 +42,9 @@ createFun ident env args body = fun
       argVars <- liftIO $ mapM newIORef argVals
       local (const $ foldl insertPair env $ zip args argVars) $ callCC $ \ret -> do
         retFun <- liftIO $ newIORef (RetFun ret)
-        local (Map.insert (Ident "_ret_") retFun) $ do
+        local (Map.insert (Ident "$ret$") retFun) $ do
           interpretStmts body
-          throwError "missing return statement"
+          return VoidVal
 
 interpretStmts :: [Stmt] -> MyMonad ()
 interpretStmts [] = pure ()
@@ -64,15 +67,38 @@ interpretStmt (Decr ident) = do
   liftIO . modifyIORef' ioref $ \(IntVal i) -> IntVal (i - 1)
 
 interpretStmt (Ret expr) = do
-  Just ioref <- asks (Map.lookup (Ident "_ret_"))
+  Just ioref <- asks (Map.lookup (Ident "$ret$"))
   RetFun fun <- liftIO $ readIORef ioref
   val <- evalExpr expr
   fun val
+
+interpretStmt (Print expr) = do
+  StrVal s <- evalExpr expr
+  liftIO $ print s
+
+
+printResult :: Either String () -> IO Value
+printResult res = do
+  case res of
+    Left errMsg -> print errMsg
+    Right _ -> print "Program interpreted correctly!"
+  return VoidVal
+
+interpretProg :: Program -> IO Value
+interpretProg (Program stmts) = runContT (runExceptT (runReaderT (interpretStmts stmts) Map.empty)) printResult
+
+
+main = do
+  args <- getArgs   -- TODO: Add case of missing file to interpret
+  fd <- openFile (head args) ReadMode
+  program <- hGetContents fd
+  let Ok prog = pProgram (myLexer program) in interpretProg prog
 
 {-
 runInterpret :: Env -> MyMonad a -> IO Value--(Either String a, [String])
 runInterpret env ev = runContT (runWriterT (runExceptT (runReaderT ev env))) id
 -}
+{-
 exampleProg = Program [Decl Int [Init (Ident "x") (ELitInt 5)],Decl Int [Init (Ident "y") (ELitInt 7)],Decl Int [Init (Ident "z") (EAdd (EVar (Ident "x")) Plus (EVar (Ident "y")))]]
 exampleExpr1 = ELitInt 5
 exampleExpr2 = EAdd (ELitInt 7) Plus (ELitInt 5)
@@ -80,9 +106,8 @@ exampleExpr3 = EAdd (ELitInt 7) Minus (ELitInt 5)
 exampleExpr4 = Neg ELitTrue
 exampleExpr5 = EMul (ELitInt 7) Div (ELitInt 5)
 exampleExpr6 = EMul (ELitInt 7) Times (ELitInt 5)
-
 exampleStmts1 = [Decl Int [Init (Ident "testVar") (ELitInt 7)],Incr (Ident "testVar")]
-
 exampleStmt1 = SExp (EAdd (ELitInt 7) Plus (ELitInt 5))
 
--- To run: runInterpret Map.empty (interpretStmts exampleStmts1)
+To run: runInterpret Map.empty (interpretStmts exampleStmts1)
+-}
