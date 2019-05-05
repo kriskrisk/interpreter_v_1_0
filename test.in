@@ -45,8 +45,21 @@ changer(to_change);
 print("Should be 2:")
 print(to_change)
 
+// Cond
+print("[TEST]: conditional statement")
+int d = 5;
+if (d > 4) {
+	print("Passed!");
+}
+d = 3;
+if (d > 4) {
+	print("Failed!");
+} else {
+	print("Passed!");
+}
+
 // While:
-print("[TEST]: while")
+print("[TEST]: while");
 int i = 0;
 while (i < 5) {
 	print("Loopin'!");

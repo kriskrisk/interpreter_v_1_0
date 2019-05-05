@@ -69,7 +69,10 @@ interpretStmt Empty = return ()
 
 interpretStmt (BStmt (Block stmts)) = interpretStmts stmts
 
---interpretStmt (Ass ident expr) = return ()
+interpretStmt (Ass ident expr) = do
+  Just ioref <- asks (Map.lookup ident)
+  val <- evalExpr expr
+  liftIO . modifyIORef' ioref $ \_ -> val
 
 interpretStmt (Incr ident) = do
   Just ioref <- asks (Map.lookup ident)
