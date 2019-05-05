@@ -8,3 +8,6 @@ int foo() {
   int a = 5;
   return getA();
 }
+
+print("Should return 4:")
+print(foo())

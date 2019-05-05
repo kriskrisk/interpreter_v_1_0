@@ -1,5 +1,14 @@
+// Types:
+print("[TEST]: types")
+int int_val = 5;
+print(int_val);
+string string_val = "hi!";
+print(string_val);
+boolean boolean_val = true;
+print(boolean_val);
+
 // Simple arithmetics:
-print("[TEST]: arithmetic")
+print("[TEST]: arithmetics")
 int a = 2;
 int b = 6;
 int c = a + b;
@@ -70,3 +79,23 @@ while (i < 5) {
 	print("Loopin'!");
 	i++;
 }
+
+// Recursion:
+print("[TEST]: recursion");
+void recursion(int num) {
+	print(num);
+	//print(num);
+	if (num < 5) {
+		//print("before call");
+		num++;
+		recursion(num);
+		//print("after call");
+	} else {
+		print("end of recursion");
+	}
+}
+recursion(1);
+
+// Functional type:
+print("[TEST]: functional type");
+

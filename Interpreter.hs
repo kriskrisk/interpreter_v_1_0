@@ -50,10 +50,11 @@ createFun ident env args body = fun
   where
     fun = FunVal isRefList $ \argVals -> do
       argVars <- mapM addIORef argVals
-      --argVars <- liftIO $ mapM newIORef argVals
       local (const $ foldl insertPair env $ zip args argVars) $ callCC $ \ret -> do
         retFun <- liftIO $ newIORef (RetFun ret)
-        local (Map.insert (Ident "$ret$") retFun) $ do
+        defFun <- liftIO $ newIORef fun
+        local ((Map.insert ident defFun) . (Map.insert (Ident "$ret$") retFun)) $ do
+        --local (Map.insert (Ident "$ret$") retFun) $ do
           interpretStmts body
           return VoidVal
     isRefList = map isRef args
