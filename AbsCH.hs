@@ -11,7 +11,7 @@ newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
 data Program = Program [Stmt]
   deriving (Eq, Ord, Show, Read)
 
-data Arg = Arg Type Ident
+data Arg = Arg Type Ident | RefArg Type Ident
   deriving (Eq, Ord, Show, Read)
 
 data Stmt

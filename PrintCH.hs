@@ -90,6 +90,7 @@ instance Print Program where
 instance Print Arg where
   prt i e = case e of
     Arg type_ id -> prPrec i 0 (concatD [prt 0 type_, prt 0 id])
+    RefArg type_ id -> prPrec i 0 (concatD [prt 0 type_, doc (showString "&"), prt 0 id])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
@@ -127,7 +128,7 @@ instance Print Type where
     Str -> prPrec i 0 (concatD [doc (showString "string")])
     Bool -> prPrec i 0 (concatD [doc (showString "boolean")])
     Void -> prPrec i 0 (concatD [doc (showString "void")])
-    Fun type_ types -> prPrec i 0 (concatD [prt 0 type_, doc (showString "("), prt 0 types, doc (showString ")")])
+    Fun type_ types -> prPrec i 0 (concatD [doc (showString "fun"), prt 0 type_, doc (showString "("), prt 0 types, doc (showString ")")])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])

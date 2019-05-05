@@ -26,18 +26,23 @@ void foo2() {
 }
 print(foo2());
 
-void foo3(int q) {
+// Passing argument as value:
+print("[TEST]: passing argument as value")
+int not_to_change = 1;
+print(not_to_change)
+void not_changer(int q) {
 	q++;
 	print(q);
 }
-foo3(a);
-print(a)
+not_changer(not_to_change);
+print("Should be 1:")
+print(not_to_change)
 
 // Passing argument as reference:
 print("[TEST]: passing argument as reference")
 int to_change = 1;
 print(to_change)
-void changer(int p) {
+void changer(int & p) {
 	p++;
 	print(p);
 }

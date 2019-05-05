@@ -4,13 +4,15 @@ entrypoints Program ;
 
 Program.   Program ::= [Stmt] ;
 
-Arg. 	   Arg ::= Type Ident;
+Arg.       Arg ::= Type Ident;
+
+RefArg.    Arg ::= Type "&" Ident;
 
 separator  Arg "," ;
 
 -- statements ----------------------------------------------
 
-FnDef.	   Stmt ::= Type Ident "(" [Arg] ")" Block ;
+FnDef.     Stmt ::= Type Ident "(" [Arg] ")" Block ;
 
 Block.     Block ::= "{" [Stmt] "}" ;
 
@@ -58,7 +60,7 @@ Bool.      Type ::= "boolean" ;
 
 Void.      Type ::= "void" ;
 
-internal   Fun. Type ::= Type "(" [Type] ")" ;
+Fun.       Type ::= "fun" Type "(" [Type] ")" ;
 
 separator  Type "," ;
 

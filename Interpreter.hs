@@ -34,17 +34,29 @@ applyToInt :: (Integer -> Integer) -> Value -> Value
 applyToInt fun (IntVal i) = IntVal (fun i)
 
 insertPair :: Env -> (Arg, (IORef Value)) -> Env
-insertPair m (Arg _ ident, value) = Map.insert ident value m
+insertPair m (Arg _ ident, val) = Map.insert ident val m
+insertPair m (RefArg _ ident, val) = Map.insert ident val m
+
+isRef :: Arg -> Bool
+isRef (Arg _ _) = False
+isRef (RefArg _ _) = True
+
+addIORef :: FunArg -> MyMonad (IORef Value)
+addIORef (Val val) = liftIO $ newIORef val
+addIORef (RefVal ioref) = return ioref
+
 createFun :: Ident -> Env -> [Arg] -> [Stmt] -> Value
 createFun ident env args body = fun
   where
-    fun = FunVal $ \argVals -> do
-      argVars <- liftIO $ mapM newIORef argVals
+    fun = FunVal isRefList $ \argVals -> do
+      argVars <- mapM addIORef argVals
+      --argVars <- liftIO $ mapM newIORef argVals
       local (const $ foldl insertPair env $ zip args argVars) $ callCC $ \ret -> do
         retFun <- liftIO $ newIORef (RetFun ret)
         local (Map.insert (Ident "$ret$") retFun) $ do
           interpretStmts body
           return VoidVal
+    isRefList = map isRef args
 
 loop :: Expr -> Stmt -> MyMonad ()
 loop expr stmt = do

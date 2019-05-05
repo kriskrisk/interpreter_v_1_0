@@ -18,11 +18,12 @@ import ErrM
 type Env = Map.Map Ident (IORef Value)
 type MyMonad a = ReaderT Env (ExceptT String (ContT Value IO)) a
 
+data FunArg = Val Value | RefVal (IORef Value)
 data Value = IntVal Integer
            | BoolVal Bool
            | StrVal String
            | VoidVal
-           | FunVal ([Value] -> MyMonad Value)
+           | FunVal [Bool] ([FunArg] -> MyMonad Value)  -- List of Bool values is used to determin positions of references
            | RetFun (Value -> MyMonad ())
 
 instance Show Value where
@@ -30,8 +31,16 @@ instance Show Value where
   show (BoolVal x) = show x
   show (StrVal x) = show x
   show VoidVal = "<void value>"
-  show (FunVal x) = "<some function>"
-  show (RetFun x) = "<return function>"
+  show (FunVal _ _) = "<some function>"
+  show (RetFun _) = "<return function>"
+
+evalArg :: (Bool, Expr) -> MyMonad FunArg
+evalArg (True, (EVar ident)) = do
+  Just ref <- asks $ Map.lookup ident
+  return $ RefVal ref
+evalArg (_, expr) = do
+  val <- evalExpr expr
+  return $ Val val
 
 evalExpr :: Expr -> MyMonad Value
 evalExpr (ELitInt i) = do
@@ -47,8 +56,8 @@ evalExpr ELitFalse = return (BoolVal False)
 
 evalExpr (EApp ident args) = do
   Just ioref <- asks (Map.lookup ident)
-  FunVal fun <- (liftIO . readIORef) ioref
-  argVals <- mapM evalExpr args
+  FunVal refPos fun <- (liftIO . readIORef) ioref
+  argVals <- mapM evalArg (zip refPos args)
   fun argVals
 
 evalExpr (EString s) = return (StrVal s)
