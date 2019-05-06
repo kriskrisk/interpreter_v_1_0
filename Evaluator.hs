@@ -25,6 +25,7 @@ data Value = IntVal Integer
            | VoidVal
            | FunVal [Bool] ([FunArg] -> MyMonad Value)  -- List of Bool values is used to determin positions of references
            | RetFun (Value -> MyMonad ())
+           | Undefined
 
 instance Show Value where
   show (IntVal x) = show x

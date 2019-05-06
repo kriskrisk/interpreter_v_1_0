@@ -53,8 +53,7 @@ createFun ident env args body = fun
       local (const $ foldl insertPair env $ zip args argVars) $ callCC $ \ret -> do
         retFun <- liftIO $ newIORef (RetFun ret)
         defFun <- liftIO $ newIORef fun
-        local ((Map.insert ident defFun) . (Map.insert (Ident "$ret$") retFun)) $ do
-        --local (Map.insert (Ident "$ret$") retFun) $ do
+        local (Map.insert (Ident "$ret$") retFun) $ do
           interpretStmts body
           return VoidVal
     isRefList = map isRef args
@@ -71,9 +70,11 @@ loop expr stmt = do
 interpretStmts :: [Stmt] -> MyMonad ()
 interpretStmts [] = pure ()
 interpretStmts ((FnDef _ ident args (Block body)) : rest) = do
-  env <- ask
-  fun <- liftIO (newIORef (createFun ident env args body))
-  local (Map.insert ident fun) $ interpretStmts rest
+  defFun <- liftIO $ newIORef Undefined
+  local (Map.insert ident defFun) $ do
+    env <- ask
+    liftIO $ writeIORef defFun $ createFun ident env args body
+    interpretStmts rest
 interpretStmts ((Decl _ decls) : rest) = foldr declare (interpretStmts rest) decls
 interpretStmts (stmt : stmts) = interpretStmt stmt >> interpretStmts stmts
 
