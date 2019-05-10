@@ -1,0 +1,12 @@
+// If:
+int x = 5;
+if (x > 4) {
+	print("Passed!");
+}
+
+x = 3;
+if (x > 4) {
+	print("Failed!");
+} else {
+	print("Passed!");
+}

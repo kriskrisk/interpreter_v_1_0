@@ -1,11 +1,8 @@
+WORKING_DIR = $(shell pwd)
+COMP = ghc
+
 all:
-	happy -gca ParCH.y
-	alex -g LexCH.x
-	ghc --make TestCH.hs -o TestCH
+	$(COMP) -i$(WORKING_DIR)/bnfc:$(WORKING_DIR)/src -main-is Interpreter -o interpreter src/Interpreter.hs
 
 clean:
-	-rm -f *.log *.aux *.hi *.o *.dvi
-
-distclean: clean
-	-rm -f DocCH.* LexCH.* ParCH.* LayoutCH.* SkelCH.* PrintCH.* TestCH.* AbsCH.* TestCH ErrM.* SharedString.* ComposOp.* c-h.dtd XMLCH.* Makefile*
-	
+	-rm -f $(WORKING_DIR)/src/*.hi $(WORKING_DIR)/src/*.o

@@ -1,0 +1,25 @@
+// Functions:
+void foo1(int q) {
+	print(q + 5);
+	print(q * 5);
+	return;
+	print("After return...!")
+}
+foo1(6);
+
+int foo2() {
+	return 5;
+}
+print(foo2());
+
+// Recursion:
+void recursion(int num) {
+	print(num);
+	if (num < 5) {
+		num++;
+		recursion(num);
+	} else {
+		print("end of recursion");
+	}
+}
+recursion(1);

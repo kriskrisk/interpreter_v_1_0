@@ -1,0 +1,17 @@
+// Passing argument as value:
+int not_to_change = 1;
+void not_changer(int q) {
+	q++;
+}
+not_changer(not_to_change);
+print("Should be 1:")
+print(not_to_change)
+
+// Passing argument as reference:
+int to_change = 1;
+void changer(int & p) {
+	p++;
+}
+changer(to_change);
+print("Should be 2:")
+print(to_change)

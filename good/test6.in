@@ -1,0 +1,22 @@
+// Static binding:
+int a = 4;
+
+int getA() {
+  return a;
+}
+
+int foo() {
+  int a = 5;
+  return getA();
+}
+
+print("Should return 4:")
+print(foo())
+
+// Variable shadowing:
+int b = 1;
+{
+	int b = 2;
+	print(b);
+}
+print(b);

@@ -1,0 +1,14 @@
+// Types:
+int int_val = 5;
+print(int_val);
+string string_val = "hi!";
+print(string_val);
+boolean boolean_val = true;
+print(boolean_val);
+
+// Simple arithmetics:
+int x = (2 + 5) / 3;
+print(x);
+x++;
+print(x);
+print(x == 3);

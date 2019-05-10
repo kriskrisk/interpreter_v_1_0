@@ -1,0 +1,101 @@
+// Types:
+print("[TEST]: types")
+int int_val = 5;
+print(int_val);
+string string_val = "hi!";
+print(string_val);
+boolean boolean_val = true;
+print(boolean_val);
+
+// Simple arithmetics:
+print("[TEST]: arithmetics")
+int a = 2;
+int b = 6;
+int c = a + b;
+c++;
+//int d = c / 0;
+
+// Prints:
+print("[TEST]: print")
+print("Hello world!");
+print(c);
+
+// Functions:
+print("[TEST]: functions")
+void foo1(int q) {
+	print(q + 5);
+	print(q * 5);
+	return;
+	print("After return...!")
+}
+foo1(6);
+
+void foo2() {
+	return 5;
+}
+print(foo2());
+
+// Passing argument as value:
+print("[TEST]: passing argument as value")
+int not_to_change = 1;
+print(not_to_change)
+void not_changer(int q) {
+	q++;
+	print(q);
+}
+not_changer(not_to_change);
+print("Should be 1:")
+print(not_to_change)
+
+// Passing argument as reference:
+print("[TEST]: passing argument as reference")
+int to_change = 1;
+print(to_change)
+void changer(int & p) {
+	p++;
+	print(p);
+}
+changer(to_change);
+print("Should be 2:")
+print(to_change)
+
+// Cond
+print("[TEST]: conditional statement")
+int d = 5;
+if (d > 4) {
+	print("Passed!");
+}
+d = 3;
+if (d > 4) {
+	print("Failed!");
+} else {
+	print("Passed!");
+}
+
+// While:
+print("[TEST]: while");
+int i = 0;
+while (i < 5) {
+	print("Loopin'!");
+	i++;
+}
+
+// Recursion:
+print("[TEST]: recursion");
+void recursion(int num) {
+	print(num);
+	//print(num);
+	if (num < 5) {
+		//print("before call");
+		num++;
+		recursion(num);
+		//print("after call");
+	} else {
+		print("end of recursion");
+	}
+}
+recursion(1);
+
+// Functional type:
+print("[TEST]: functional type");
+
