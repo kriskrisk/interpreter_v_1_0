@@ -1,5 +1,3 @@
-Evaluator.hi
-Evaluator.o
-Interpreter.hi
-Interpreter.o
 interpreter
+*.o
+*.hi
