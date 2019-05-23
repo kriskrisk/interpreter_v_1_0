@@ -9,9 +9,6 @@ import Data.Maybe
 import qualified Data.Map as Map
 import Data.IORef
 
-import System.IO
-import System.Environment
-
 import LexCH
 import ParCH
 import AbsCH
@@ -140,10 +137,3 @@ printResult res = do
 
 interpretProg :: Program -> IO Value
 interpretProg (Program stmts) = runContT (runExceptT (runReaderT (interpretStmts stmts) Map.empty)) printResult
-
-
-main = do
-  args <- getArgs   -- TODO: Add case of missing file to interpret
-  fd <- openFile (head args) ReadMode
-  program <- hGetContents fd
-  let Ok prog = pProgram (myLexer program) in interpretProg prog
