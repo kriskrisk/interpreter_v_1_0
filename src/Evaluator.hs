@@ -44,8 +44,7 @@ evalArg (_, expr) = do
   return $ Val val
 
 evalExpr :: Expr -> MyMonad Value
-evalExpr (ELitInt i) = do
-  return $ IntVal i
+evalExpr (ELitInt i) = return $ IntVal i
 
 evalExpr (EVar ident) = do
   Just val <- asks (Map.lookup ident)
@@ -64,33 +63,25 @@ evalExpr (EApp ident args) = do
 evalExpr (EString s) = return (StrVal s)
 
 evalExpr (Neg e) = do
-  val <- evalExpr e
-  case val of
-    BoolVal b -> return $ BoolVal (not b)
-    _ -> throwError "not a boolean expression"
+  BoolVal val <- evalExpr e
+  return $ BoolVal (not val)
 
 evalExpr (EMul e1 op e2) = do
-  e1' <- evalExpr e1
-  e2' <- evalExpr e2
-  case (e1', e2') of
-    (IntVal i1, IntVal i2) -> 
-      case op of
-        Times -> return $ IntVal (i1 * i2)
-        Div -> case i2 of
-          0 -> throwError "division by zero error"
-          _ -> return $ IntVal (i1 `quot` i2)
-        Mod -> return $ IntVal (i1 `mod` i2)
-    _ -> throwError "type error in multiplication"
+  IntVal i1 <- evalExpr e1
+  IntVal i2 <- evalExpr e2
+  case op of
+    Times -> return $ IntVal (i1 * i2)
+    Div -> case i2 of
+      0 -> throwError "[RUNTIME ERROR]: division by zero"
+      _ -> return $ IntVal (i1 `quot` i2)
+    Mod -> return $ IntVal (i1 `mod` i2)
 
 evalExpr (EAdd e1 op e2) = do
-  e1' <- evalExpr e1
-  e2' <- evalExpr e2
-  case (e1', e2') of
-    (IntVal i1, IntVal i2) -> 
-      case op of
-        Plus -> return $ IntVal (i1 + i2)
-        Minus -> return $ IntVal (i1 - i2)
-    _ -> throwError "type error in addition"
+  IntVal i1 <- evalExpr e1
+  IntVal i2 <- evalExpr e2
+  case op of
+    Plus -> return $ IntVal (i1 + i2)
+    Minus -> return $ IntVal (i1 - i2)
 
 evalExpr (ERel e1 op e2) = do
   e1' <- evalExpr e1
@@ -104,18 +95,21 @@ evalExpr (ERel e1 op e2) = do
         GE -> return $ BoolVal (i1 >= i2)
         EQU -> return $ BoolVal (i1 == i2)
         NE -> return $ BoolVal (i1 /= i2)
-    _ -> throwError "type error in relation operation"
+    (BoolVal i1, BoolVal i2) -> 
+      case op of
+        EQU -> return $ BoolVal (i1 == i2)
+        NE -> return $ BoolVal (i1 /= i2)
+    (StrVal i1, StrVal i2) -> 
+      case op of
+        EQU -> return $ BoolVal (i1 == i2)
+        NE -> return $ BoolVal (i1 /= i2)
 
 evalExpr (EAnd e1 e2) = do
-  e1' <- evalExpr e1
-  e2' <- evalExpr e2
-  case (e1', e2') of
-    (BoolVal b1, BoolVal b2) -> return $ BoolVal (b1 && b2)
-    _ -> throwError "type error in AND operator"
+  BoolVal b1 <- evalExpr e1
+  BoolVal b2 <- evalExpr e2
+  return $ BoolVal (b1 && b2)
 
 evalExpr (EOr e1 e2) = do
-  e1' <- evalExpr e1
-  e2' <- evalExpr e2
-  case (e1', e2') of
-    (BoolVal b1, BoolVal b2) -> return $ BoolVal (b1 || b2)
-    _ -> throwError "type error in AND operator"
+  BoolVal b1 <- evalExpr e1
+  BoolVal b2 <- evalExpr e2
+  return $ BoolVal (b1 || b2)
