@@ -1,0 +1,5 @@
+int foo(int arg) {
+	return true;
+}
+
+print(foo(7));

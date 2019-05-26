@@ -16,7 +16,7 @@ import AbsCH
 import ErrM
 
 type Env = Map.Map Ident (IORef Value)
-type MyMonad a = ReaderT Env (ExceptT String (ContT Value IO)) a
+type MyMonad a = ReaderT Env (ExceptT String (ContT () IO)) a
 
 data FunArg = Val Value | RefVal (IORef Value)
 data Value = IntVal Integer

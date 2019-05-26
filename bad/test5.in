@@ -1,0 +1,7 @@
+int foo(int a) {
+	return 5;
+}
+
+boolean boolean_val = true;
+int x = foo(boolean_val);
+print(x)

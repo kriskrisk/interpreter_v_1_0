@@ -23,6 +23,9 @@ declare (Init ident e) m = do
   e' <- evalExpr e
   ioref <- liftIO (newIORef e')
   local (Map.insert ident ioref) m
+declare (NoInit ident) m = do
+  ioref <- liftIO (newIORef Undefined)
+  local (Map.insert ident ioref) m
 
 incIntVal :: Value -> Value
 incIntVal (IntVal i) = IntVal (i + 1)
@@ -127,13 +130,11 @@ interpretStmt (SExp expr) = do
   return ()
 
 
-printResult :: Either String () -> IO Value
-printResult res = do
-  case res of
-    Left errMsg -> do
-      print errMsg
-      return (IntVal 1)
-    Right _ -> return (IntVal 0)
+printResult :: Either String () -> IO ()
+printResult res = case res of
+  Left errMsg -> do
+    print errMsg
+  Right _ -> pure ()
 
-interpretProg :: Program -> IO Value
+interpretProg :: Program -> IO ()
 interpretProg (Program stmts) = runContT (runExceptT (runReaderT (interpretStmts stmts) Map.empty)) printResult

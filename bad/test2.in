@@ -1,0 +1,7 @@
+int x = 5 / 3;
+print(x);
+x = 7;
+print(x);
+y = 2;
+print(y);
+print("Reszta");

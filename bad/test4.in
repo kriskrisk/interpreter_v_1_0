@@ -1,0 +1,4 @@
+int foo() {
+	return 6;
+}
+boolean x = foo();
