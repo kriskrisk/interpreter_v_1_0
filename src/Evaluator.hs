@@ -15,17 +15,8 @@ import AbsCH
 
 import ErrM
 
-type Env = Map.Map Ident (IORef Value)
-type MyMonad a = ReaderT Env (ExceptT String (ContT () IO)) a
+import TypesDef
 
-data FunArg = Val Value | RefVal (IORef Value)
-data Value = IntVal Integer
-           | BoolVal Bool
-           | StrVal String
-           | VoidVal
-           | FunVal [Bool] ([FunArg] -> MyMonad Value)  -- List of Bool values is used to determin positions of references
-           | RetFun (Value -> MyMonad ())
-           | Undefined
 
 instance Show Value where
   show (IntVal x) = show x
@@ -35,81 +26,81 @@ instance Show Value where
   show (FunVal _ _) = "<some function>"
   show (RetFun _) = "<return function>"
 
-evalArg :: (Bool, Expr) -> MyMonad FunArg
-evalArg (True, (EVar ident)) = do
+evalArg :: (Bool, Expr Pos) -> MyMonad FunArg
+evalArg (True, (EVar pos ident)) = do
   Just ref <- asks $ Map.lookup ident
   return $ RefVal ref
 evalArg (_, expr) = do
   val <- evalExpr expr
   return $ Val val
 
-evalExpr :: Expr -> MyMonad Value
-evalExpr (ELitInt i) = return $ IntVal i
+evalExpr :: Expr Pos -> MyMonad Value
+evalExpr (ELitInt pos i) = return $ IntVal i
 
-evalExpr (EVar ident) = do
+evalExpr (EVar _ ident) = do
   Just val <- asks (Map.lookup ident)
   liftIO (readIORef val)
 
-evalExpr ELitTrue = return (BoolVal True)
+evalExpr (ELitTrue _) = return (BoolVal True)
 
-evalExpr ELitFalse = return (BoolVal False)
+evalExpr (ELitFalse _) = return (BoolVal False)
 
-evalExpr (EApp ident args) = do
+evalExpr (EApp _ ident args) = do
   Just ioref <- asks (Map.lookup ident)
   FunVal refPos fun <- (liftIO . readIORef) ioref
   argVals <- mapM evalArg (zip refPos args)
   fun argVals
 
-evalExpr (EString s) = return (StrVal s)
+evalExpr (EString _ s) = return (StrVal s)
 
-evalExpr (Neg e) = do
+evalExpr (Neg _ e) = do
   BoolVal val <- evalExpr e
   return $ BoolVal (not val)
 
-evalExpr (EMul e1 op e2) = do
+evalExpr (EMul _ e1 op e2) = do
   IntVal i1 <- evalExpr e1
   IntVal i2 <- evalExpr e2
   case op of
-    Times -> return $ IntVal (i1 * i2)
-    Div -> case i2 of
-      0 -> throwError "[RUNTIME ERROR]: division by zero"
+    Times _ -> return $ IntVal (i1 * i2)
+    Div pos -> case i2 of
+      0 -> throwError ("[RUNTIME ERROR]: " ++ show (fromJust pos) ++ " division by zero")
       _ -> return $ IntVal (i1 `quot` i2)
-    Mod -> return $ IntVal (i1 `mod` i2)
+    Mod _ -> return $ IntVal (i1 `mod` i2)
 
-evalExpr (EAdd e1 op e2) = do
+evalExpr (EAdd _ e1 op e2) = do
   IntVal i1 <- evalExpr e1
   IntVal i2 <- evalExpr e2
   case op of
-    Plus -> return $ IntVal (i1 + i2)
-    Minus -> return $ IntVal (i1 - i2)
+    Plus _ -> return $ IntVal (i1 + i2)
+    Minus _ -> return $ IntVal (i1 - i2)
 
-evalExpr (ERel e1 op e2) = do
+evalExpr (ERel _ e1 op e2) = do
   e1' <- evalExpr e1
   e2' <- evalExpr e2
   case (e1', e2') of
     (IntVal i1, IntVal i2) -> 
       case op of
-        LTH -> return $ BoolVal (i1 < i2)
-        LE -> return $ BoolVal (i1 <= i2)
-        GTH -> return $ BoolVal (i1 > i2)
-        GE -> return $ BoolVal (i1 >= i2)
-        EQU -> return $ BoolVal (i1 == i2)
-        NE -> return $ BoolVal (i1 /= i2)
+        LTH _ -> return $ BoolVal (i1 < i2)
+        LE _ -> return $ BoolVal (i1 <= i2)
+        GTH _ -> return $ BoolVal (i1 > i2)
+        GE _ -> return $ BoolVal (i1 >= i2)
+        EQU _ -> return $ BoolVal (i1 == i2)
+        NE _ -> return $ BoolVal (i1 /= i2)
     (BoolVal i1, BoolVal i2) -> 
       case op of
-        EQU -> return $ BoolVal (i1 == i2)
-        NE -> return $ BoolVal (i1 /= i2)
+        EQU _ -> return $ BoolVal (i1 == i2)
+        NE _ -> return $ BoolVal (i1 /= i2)
     (StrVal i1, StrVal i2) -> 
       case op of
-        EQU -> return $ BoolVal (i1 == i2)
-        NE -> return $ BoolVal (i1 /= i2)
+        EQU _ -> return $ BoolVal (i1 == i2)
+        NE _ -> return $ BoolVal (i1 /= i2)
 
-evalExpr (EAnd e1 e2) = do
+evalExpr (EAnd _ e1 e2) = do
   BoolVal b1 <- evalExpr e1
   BoolVal b2 <- evalExpr e2
   return $ BoolVal (b1 && b2)
 
-evalExpr (EOr e1 e2) = do
+evalExpr (EOr _ e1 e2) = do
   BoolVal b1 <- evalExpr e1
   BoolVal b2 <- evalExpr e2
   return $ BoolVal (b1 || b2)

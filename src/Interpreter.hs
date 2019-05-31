@@ -16,14 +16,15 @@ import AbsCH
 import ErrM
 
 import Evaluator
+import TypesDef
 
 
-declare :: Item -> MyMonad () -> MyMonad ()
-declare (Init ident e) m = do
+declare :: Item Pos -> MyMonad () -> MyMonad ()
+declare (Init _ ident e) m = do
   e' <- evalExpr e
   ioref <- liftIO (newIORef e')
   local (Map.insert ident ioref) m
-declare (NoInit ident) m = do
+declare (NoInit _ ident) m = do
   ioref <- liftIO (newIORef Undefined)
   local (Map.insert ident ioref) m
 
@@ -33,19 +34,19 @@ incIntVal (IntVal i) = IntVal (i + 1)
 applyToInt :: (Integer -> Integer) -> Value -> Value
 applyToInt fun (IntVal i) = IntVal (fun i)
 
-insertPair :: Env -> (Arg, (IORef Value)) -> Env
-insertPair m (Arg _ ident, val) = Map.insert ident val m
-insertPair m (RefArg _ ident, val) = Map.insert ident val m
+insertPair :: Env -> (Arg Pos, (IORef Value)) -> Env
+insertPair m (Arg _ _ ident, val) = Map.insert ident val m
+insertPair m (RefArg _ _ ident, val) = Map.insert ident val m
 
-isRef :: Arg -> Bool
-isRef (Arg _ _) = False
-isRef (RefArg _ _) = True
+isRef :: Arg Pos -> Bool
+isRef (Arg _ _ _) = False
+isRef (RefArg _ _ _) = True
 
 addIORef :: FunArg -> MyMonad (IORef Value)
 addIORef (Val val) = liftIO $ newIORef val
 addIORef (RefVal ioref) = return ioref
 
-createFun :: Ident -> Env -> [Arg] -> [Stmt] -> Value
+createFun :: Ident -> Env -> [Arg Pos] -> [Stmt Pos] -> Value
 createFun ident env args body = fun
   where
     fun = FunVal isRefList $ \argVals -> do
@@ -58,7 +59,7 @@ createFun ident env args body = fun
           return VoidVal
     isRefList = map isRef args
 
-loop :: Expr -> Stmt -> MyMonad ()
+loop :: Expr Pos -> Stmt Pos -> MyMonad ()
 loop expr stmt = do
   BoolVal val <- evalExpr expr
   if val
@@ -67,65 +68,65 @@ loop expr stmt = do
       loop expr stmt
   else return ()
 
-interpretStmts :: [Stmt] -> MyMonad ()
+interpretStmts :: [Stmt Pos] -> MyMonad ()
 interpretStmts [] = pure ()
-interpretStmts ((FnDef _ ident args (Block body)) : rest) = do
+interpretStmts ((FnDef _ _ ident args (Block _ body)) : rest) = do
   defFun <- liftIO $ newIORef Undefined
   local (Map.insert ident defFun) $ do
     env <- ask
     liftIO $ writeIORef defFun $ createFun ident env args body
     interpretStmts rest
-interpretStmts ((Decl _ decls) : rest) = foldr declare (interpretStmts rest) decls
+interpretStmts ((Decl _ _ decls) : rest) = foldr declare (interpretStmts rest) decls
 interpretStmts (stmt : stmts) = interpretStmt stmt >> interpretStmts stmts
 
-interpretStmt :: Stmt -> MyMonad ()
-interpretStmt Empty = return ()
+interpretStmt :: Stmt Pos -> MyMonad ()
+interpretStmt (Empty _) = return ()
 
-interpretStmt (BStmt (Block stmts)) = interpretStmts stmts
+interpretStmt (BStmt _ (Block _ stmts)) = interpretStmts stmts
 
-interpretStmt (Ass ident expr) = do
+interpretStmt (Ass _ ident expr) = do
   Just ioref <- asks (Map.lookup ident)
   val <- evalExpr expr
   liftIO . modifyIORef' ioref $ \_ -> val
 
-interpretStmt (Incr ident) = do
+interpretStmt (Incr _ ident) = do
   Just ioref <- asks (Map.lookup ident)
   liftIO . modifyIORef' ioref $ \(IntVal i) -> IntVal (i + 1)
 
-interpretStmt (Decr ident) = do
+interpretStmt (Decr _ ident) = do
   Just ioref <- asks (Map.lookup ident)
   liftIO . modifyIORef' ioref $ \(IntVal i) -> IntVal (i - 1)
 
-interpretStmt (Ret expr) = do
+interpretStmt (Ret _ expr) = do
   Just ioref <- asks (Map.lookup (Ident "$ret$"))
   RetFun fun <- liftIO $ readIORef ioref
   val <- evalExpr expr
   fun val
 
-interpretStmt VRet = do
+interpretStmt (VRet _) = do
   Just ioref <- asks (Map.lookup (Ident "$ret$"))
   RetFun fun <- liftIO $ readIORef ioref
   fun VoidVal
 
-interpretStmt (Cond expr stmt) = do
+interpretStmt (Cond _ expr stmt) = do
   cond <- evalExpr expr
   case cond of
     BoolVal True -> interpretStmt stmt
     BoolVal False -> return ()
 
-interpretStmt (CondElse expr stmtTrue stmtFalse) = do
+interpretStmt (CondElse _ expr stmtTrue stmtFalse) = do
   cond <- evalExpr expr
   case cond of
     BoolVal True -> interpretStmt stmtTrue
     BoolVal False -> interpretStmt stmtFalse
 
-interpretStmt (While expr stmt) = loop expr stmt
+interpretStmt (While _ expr stmt) = loop expr stmt
 
-interpretStmt (Print expr) = do
+interpretStmt (Print _ expr) = do
   val <- evalExpr expr
   liftIO $ print $ val
 
-interpretStmt (SExp expr) = do
+interpretStmt (SExp _ expr) = do
   val <- evalExpr expr
   return ()
 
@@ -136,5 +137,5 @@ printResult res = case res of
     print errMsg
   Right _ -> pure ()
 
-interpretProg :: Program -> IO ()
-interpretProg (Program stmts) = runContT (runExceptT (runReaderT (interpretStmts stmts) Map.empty)) printResult
+interpretProg :: Program Pos -> IO ()
+interpretProg (Program _ stmts) = runContT (runExceptT (runReaderT (interpretStmts stmts) Map.empty)) printResult

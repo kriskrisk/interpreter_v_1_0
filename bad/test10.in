@@ -1,0 +1,3 @@
+boolean x = true && true;
+print(x)
+boolean x = true && 5;

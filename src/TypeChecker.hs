@@ -9,189 +9,231 @@ import Data.Maybe
 import qualified Data.Map as Map
 
 import AbsCH
+import TypesDef
 
 
-type TypeEnv = Map.Map Ident Type
-type TypeMonad a = ReaderT TypeEnv (ExceptT String IO) a
+throwErr :: Pos -> String -> TypeMonad a
+throwErr pos msg = throwError ("[TYPE ERROR]: " ++ show (fromJust pos) ++ " " ++ msg)
 
-checkArg :: (Type, Expr) -> TypeMonad ()
+getExprPos :: Expr Pos -> Pos
+getExprPos x = case x of
+    EVar a _ -> a
+    ELitInt a _ -> a
+    ELitTrue a -> a
+    ELitFalse a -> a
+    EApp a _ _ -> a
+    EString a _ -> a
+    Neg a _ -> a
+    Not a _ -> a
+    EMul a _ _ _ -> a
+    EAdd a _ _ _ -> a
+    ERel a _ _ _ -> a
+    EAnd a _ _ -> a
+    EOr a _ _ -> a
+
+getOpPos :: RelOp Pos -> Pos
+getOpPos x = case x of
+  LTH a -> a
+  LE a -> a
+  GTH a -> a
+  GE a -> a
+  EQU a -> a
+  NE a -> a
+
+bool :: Type Pos
+bool = Bool Nothing
+
+int :: Type Pos
+int = Int Nothing
+
+str :: Type Pos
+str = Str Nothing
+
+void_ :: Type Pos
+void_ = Void Nothing
+
+getIdentType :: Pos -> Ident -> TypeMonad (Type Pos)
+getIdentType pos ident = do
+  res <- asks (Map.lookup ident)
+  case res of
+    (Just t) -> return t
+    otherwise -> throwErr pos "referenced identificator is not declared"
+
+checkArg :: (Type Pos, Expr Pos) -> TypeMonad ()
 checkArg (t, expr) = do
   t' <- checkExpr expr
-  case (t' == t) of
-    True -> pure ()
-    _ -> throwError "[TYPE ERROR]: bad argument type"
+  if t == t'
+    then pure ()
+    else throwErr (getExprPos expr) "bad argument type"
 
-checkExpr :: Expr -> TypeMonad Type
-checkExpr (ELitInt i) = return Int
+checkExpr :: Expr Pos -> TypeMonad (Type Pos)
+checkExpr (ELitInt _ _) = return int
 
-checkExpr (EVar ident) = do
-  Just t <- asks (Map.lookup ident)
-  return t
+checkExpr (EVar pos ident) = getIdentType pos ident
 
-checkExpr ELitTrue = return Bool
+checkExpr (ELitTrue _) = return bool
+checkExpr (ELitFalse _) = return bool
 
-checkExpr ELitFalse = return Bool
-
-checkExpr (EApp ident args) = do
-  t <- getIdentType ident
+checkExpr (EApp pos ident args) = do
+  t <- getIdentType pos ident
   case t of
-    Fun tRet tArgs -> do
+    Fun _ tRet tArgs -> do
       mapM checkArg (zip tArgs args)
       return tRet
-    _ -> throwError "[TYPE ERROR]: not applicable"
+    otherwise -> throwErr pos "not applicable"
 
-checkExpr (EString s) = return Str
+checkExpr (EString _ s) = return str
 
-checkExpr (Neg e) = do
+checkExpr (Neg pos e) = do
   t <- checkExpr e
-  case t of
-    Bool -> return Bool
-    _ -> throwError "[TYPE ERROR]: not a boolean expression"
+  if t == int
+    then return int
+    else throwErr (getExprPos e) "not an integer"
 
-checkExpr (EMul e1 op e2) = do
+checkExpr (EMul pos e1 op e2) = do
   t1 <- checkExpr e1
   t2 <- checkExpr e2
-  case (t1, t2) of
-    (Int, Int) -> return Int
-    _ -> throwError "[TYPE ERROR]: not a integer value"
+  if t1 == int
+    then if t2 == int
+      then return int
+      else throwErr (getExprPos e2) "not an integer"
+    else throwErr (getExprPos e1) "not an integer"
 
-checkExpr (EAdd e1 op e2) = do
+checkExpr (EAdd pos e1 op e2) = do
   t1 <- checkExpr e1
   t2 <- checkExpr e2
-  case (t1, t2) of
-    (Int, Int) -> return Int
-    _ -> throwError "[TYPE ERROR]: not a integer value"
+  if t1 == int
+    then if t2 == int
+      then return int
+      else throwErr (getExprPos e2) "not an integer"
+    else throwErr (getExprPos e1) "not an integer"
 
-checkExpr (ERel e1 op e2) = do
+checkExpr (ERel pos e1 op e2) = do
   t1 <- checkExpr e1
   t2 <- checkExpr e2
-  case (t1, t2) of
-    (Int, Int) -> return Bool
-    (Bool, Bool) ->
-      case op of
-        EQU -> return Bool
-        NE -> return Bool
-        _ -> throwError "[TYPE ERROR]: not allowed relation operation on boolean expressions"
-    (Str, Str) ->
-      case op of
-        EQU -> return Bool
-        NE -> return Bool
-        _ -> throwError "[TYPE ERROR]: not allowed relation operation on strings"
-    _ -> throwError "[TYPE ERROR]: expressions not comparable"
+  if t1 == t2
+    then case t1 of
+      Int _ -> return bool
+      Bool _ -> case op of
+        EQU _ -> return bool
+        NE _ -> return bool
+        otherwise -> throwErr (getOpPos op) "relation operation not allowed on boolean expressions"
+      Str _ -> case op of
+        EQU _ -> return bool
+        NE _ -> return bool
+        otherwise -> throwErr (getOpPos op) "relation operation not allowed on strings"
+    else throwErr pos "relation operation on expressions of different type"
 
-checkExpr (EAnd e1 e2) = do
+checkExpr (EAnd pos e1 e2) = do
   t1 <- checkExpr e1
   t2 <- checkExpr e2
-  case (t1, t2) of
-    (Bool, Bool) -> return Bool
-    _ -> throwError "[TYPE ERROR]: not a boolean expressions"
+  if t1 == bool
+    then if t2 == bool
+      then return bool
+      else throwErr (getExprPos e2) "not a boolean expressions"
+    else throwErr (getExprPos e1) "not a boolean expressions"
 
-checkExpr (EOr e1 e2) = do
+checkExpr (EOr pos e1 e2) = do
   t1 <- checkExpr e1
   t2 <- checkExpr e2
-  case (t1, t2) of
-    (Bool, Bool) -> return Bool
-    _ -> throwError "[TYPE ERROR]: not a boolean expressions"
+  if t1 == bool
+    then if t2 == bool
+      then return bool
+      else throwErr (getExprPos e2) "not a boolean expressions"
+    else throwErr (getExprPos e1) "not a boolean expressions"
 
-declareItem :: Type -> Item -> TypeMonad () -> TypeMonad ()
-declareItem t (Init ident e) m = do
+declareItem :: Type Pos -> Item Pos -> TypeMonad () -> TypeMonad ()
+declareItem t (Init pos ident e) m = do
   t' <- checkExpr e
   case (t' == t) of
     True -> do
       local (Map.insert ident t) m
-    _ -> throwError "[TYPE ERROR]: wrong expression type"
-declareItem t (NoInit ident) m = local (Map.insert ident t) m
+    otherwise -> throwErr pos "wrong expression type"
+declareItem t (NoInit _ ident) m = local (Map.insert ident t) m
 
-declareArg :: Arg -> TypeMonad () -> TypeMonad ()
-declareArg (Arg t ident) m = do
+declareArg :: Arg Pos -> TypeMonad () -> TypeMonad ()
+declareArg (Arg _ t ident) m = do
   local (Map.insert ident t) m
-declareArg (RefArg t ident) m = do
+declareArg (RefArg _ t ident) m = do
   local (Map.insert ident t) m
 
-getArgType :: Arg -> Type
-getArgType (Arg t _) = t
-getArgType (RefArg t _) = t
+getArgType :: Arg Pos -> Type Pos
+getArgType (Arg _ t _) = t
+getArgType (RefArg _ t _) = t
 
-checkStmts :: [Stmt] -> TypeMonad ()
+checkStmts :: [Stmt Pos] -> TypeMonad ()
 checkStmts [] = pure ()
-checkStmts ((FnDef retT ident args (Block body)) : rest) = do
-  local (Map.insert ident (Fun retT (map getArgType args))) $ do
+checkStmts ((FnDef _ retT ident args (Block _ body)) : rest) = do
+  local (Map.insert ident (Fun Nothing retT (map getArgType args))) $ do
     local (Map.insert (Ident "$retType$") retT) $ foldr declareArg (checkStmts body) args
     checkStmts rest
-checkStmts ((Decl t decls) : rest) = foldr (declareItem t) (checkStmts rest) decls
+checkStmts ((Decl _ t decls) : rest) = foldr (declareItem t) (checkStmts rest) decls
 checkStmts (stmt : stmts) = checkStmt stmt >> checkStmts stmts
 
-getIdentType :: Ident -> TypeMonad Type
-getIdentType ident = do
-  res <- asks (Map.lookup ident)
-  case res of
-    (Just t) -> return t
-    _ -> throwError "[TYPE ERROR]: referenced identificator is not declared"
+checkStmt :: Stmt Pos -> TypeMonad ()
+checkStmt (Empty _) = return ()
 
-checkStmt :: Stmt -> TypeMonad ()
-checkStmt Empty = return ()
+checkStmt (BStmt _ (Block _ stmts)) = checkStmts stmts
 
-checkStmt (BStmt (Block stmts)) = checkStmts stmts
-
-checkStmt (Ass ident expr) = do
-  t <- getIdentType ident
+checkStmt (Ass pos ident expr) = do
+  t <- getIdentType pos ident
   t' <- checkExpr expr
-  case (t' == t) of
-    True -> pure ()
-    _ -> throwError "[TYPE ERROR]: wrong expression type in assignment"
+  if t == t'
+    then pure ()
+    else throwErr (getExprPos expr) "wrong expression type in assignment"
 
-checkStmt (Incr ident) = do
-  t <- getIdentType ident
-  case t of
-    Int -> pure ()
-    _ -> throwError "[TYPE ERROR]: incrementing non integer value"
+checkStmt (Incr pos ident) = do
+  t <- getIdentType pos ident
+  if t == int
+    then pure ()
+    else throwErr pos "incrementing non integer value"
 
-checkStmt (Decr ident) = do
-  t <- getIdentType ident
-  case t of
-    Int -> pure ()
-    _ -> throwError "[TYPE ERROR]: incrementing non integer value"
+checkStmt (Decr pos ident) = do
+  t <- getIdentType pos ident
+  if t == int
+    then pure ()
+    else throwErr pos "decrementing non integer value"
 
-checkStmt (Ret expr) = do
-  t <- getIdentType (Ident "$retType$")
+checkStmt (Ret pos expr) = do
+  t <- getIdentType pos (Ident "$retType$")
   t' <- checkExpr expr
-  case (t' == t) of
-    True -> pure ()
-    _ -> throwError "[TYPE ERROR]: wrong return type of a function"
+  if t == t'
+    then pure ()
+    else throwErr (getExprPos expr) "wrong type of expression in return statement"
 
-checkStmt VRet = do
-  t <- getIdentType (Ident "$retType$")
-  case t of
-    Void -> pure ()
-    _ -> throwError "[TYPE ERROR]: wrong return type of a function"
+checkStmt (VRet pos) = do
+  t <- getIdentType pos (Ident "$retType$")
+  if t == void_
+    then pure ()
+    else throwErr pos "wrong return type"
 
-checkStmt (Cond expr stmt) = do
+checkStmt (Cond pos expr stmt) = do
   condT <- checkExpr expr
-  case condT of
-    Bool -> checkStmt stmt
-    _ -> throwError "[TYPE ERROR]: expression in condition statement doesn't return boolean value"
+  if condT == bool
+    then checkStmt stmt
+    else throwErr (getExprPos expr) "not a boolean expression"
 
-checkStmt (CondElse expr stmtTrue stmtFalse) = do
+checkStmt (CondElse pos expr stmtTrue stmtFalse) = do
   condT <- checkExpr expr
-  case condT of
-    Bool -> do
+  if condT == bool
+    then do
       checkStmt stmtTrue
       checkStmt stmtFalse
-    _ -> throwError "[TYPE ERROR]: expression in condition statement is not a boolean value"
+    else throwErr (getExprPos expr) "not a boolean expression"
 
-checkStmt (While expr stmt) = do
+checkStmt (While pos expr stmt) = do
   t <- checkExpr expr
-  case t of
-    Bool -> checkStmt stmt
-    _ -> throwError "[TYPE ERROR]: expression in loop condition is not a boolean value"
+  if t == bool
+    then checkStmt stmt
+    else throwErr (getExprPos expr) "not a boolean expression"
 
-checkStmt (Print expr) = do
+checkStmt (Print _ expr) = do
   checkExpr expr
   pure ()
 
-checkStmt (SExp expr) = do
+checkStmt (SExp _ expr) = do
   checkExpr expr
   pure ()
 
-checkProg :: Program -> IO (Either String ())
-checkProg (Program stmts) = runExceptT (runReaderT (checkStmts stmts) Map.empty)
+checkProg :: (Program Pos) -> IO (Either String ())
+checkProg (Program _ stmts) = runExceptT (runReaderT (checkStmts stmts) Map.empty)

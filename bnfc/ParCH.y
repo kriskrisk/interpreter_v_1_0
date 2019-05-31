@@ -11,7 +11,7 @@ import ErrM
 -- no lexer declaration
 %monad { Err } { thenM } { returnM }
 %tokentype {Token}
-%name pProgram Program
+%name pProgram_internal Program
 %token
   '!' { PT _ (TS _ 1) }
   '!=' { PT _ (TS _ 2) }
@@ -50,322 +50,322 @@ import ErrM
   '||' { PT _ (TS _ 35) }
   '}' { PT _ (TS _ 36) }
 
-  L_ident {PT _ (TV $$)}
-  L_integ {PT _ (TI $$)}
-  L_quoted {PT _ (TL $$)}
+  L_ident {PT _ (TV _)}
+  L_integ {PT _ (TI _)}
+  L_quoted {PT _ (TL _)}
 
 %%
 
 Ident :: {
-  Ident 
+  (Maybe (Int, Int), Ident)
 }
 : L_ident {
-  Ident $1 
+  (Just (tokenLineCol $1), Ident (prToken $1)) 
 }
 
 Integer :: {
-  Integer 
+  (Maybe (Int, Int), Integer)
 }
 : L_integ {
-  read $1 
+  (Just (tokenLineCol $1), read (prToken $1)) 
 }
 
 String :: {
-  String 
+  (Maybe (Int, Int), String)
 }
 : L_quoted {
-  $1 
+  (Just (tokenLineCol $1), prToken $1)
 }
 
 Program :: {
-  Program 
+  (Maybe (Int, Int), Program (Maybe (Int, Int)))
 }
 : ListStmt {
-  AbsCH.Program (reverse $1)
+  (fst $1, AbsCH.Program (fst $1)(reverse (snd $1)))
 }
 
 Arg :: {
-  Arg 
+  (Maybe (Int, Int), Arg (Maybe (Int, Int)))
 }
 : Type Ident {
-  AbsCH.Arg $1 $2 
+  (fst $1, AbsCH.Arg (fst $1)(snd $1)(snd $2)) 
 }
 | Type '&' Ident {
-  AbsCH.RefArg $1 $3 
+  (fst $1, AbsCH.RefArg (fst $1)(snd $1)(snd $3)) 
 }
 
 ListArg :: {
-  [Arg]
+  (Maybe (Int, Int), [Arg (Maybe (Int, Int))]) 
 }
 : {
-  [] 
+  (Nothing, [])
 }
 | Arg {
-  (:[]) $1 
+  (fst $1, (:[]) (snd $1)) 
 }
 | Arg ',' ListArg {
-  (:) $1 $3 
+  (fst $1, (:) (snd $1)(snd $3)) 
 }
 
 Stmt :: {
-  Stmt 
+  (Maybe (Int, Int), Stmt (Maybe (Int, Int)))
 }
 : Type Ident '(' ListArg ')' Block {
-  AbsCH.FnDef $1 $2 $4 $6 
+  (fst $1, AbsCH.FnDef (fst $1)(snd $1)(snd $2)(snd $4)(snd $6)) 
 }
 | ';' {
-  AbsCH.Empty 
+  (Just (tokenLineCol $1), AbsCH.Empty (Just (tokenLineCol $1)))
 }
 | Block {
-  AbsCH.BStmt $1 
+  (fst $1, AbsCH.BStmt (fst $1)(snd $1)) 
 }
 | Type ListItem ';' {
-  AbsCH.Decl $1 $2 
+  (fst $1, AbsCH.Decl (fst $1)(snd $1)(snd $2)) 
 }
 | Ident '=' Expr ';' {
-  AbsCH.Ass $1 $3 
+  (fst $1, AbsCH.Ass (fst $1)(snd $1)(snd $3)) 
 }
 | Ident '++' ';' {
-  AbsCH.Incr $1 
+  (fst $1, AbsCH.Incr (fst $1)(snd $1)) 
 }
 | Ident '--' ';' {
-  AbsCH.Decr $1 
+  (fst $1, AbsCH.Decr (fst $1)(snd $1)) 
 }
 | 'return' Expr ';' {
-  AbsCH.Ret $2 
+  (Just (tokenLineCol $1), AbsCH.Ret (Just (tokenLineCol $1)) (snd $2)) 
 }
 | 'return' ';' {
-  AbsCH.VRet 
+  (Just (tokenLineCol $1), AbsCH.VRet (Just (tokenLineCol $1)))
 }
 | 'if' '(' Expr ')' Stmt {
-  AbsCH.Cond $3 $5 
+  (Just (tokenLineCol $1), AbsCH.Cond (Just (tokenLineCol $1)) (snd $3)(snd $5)) 
 }
 | 'if' '(' Expr ')' Stmt 'else' Stmt {
-  AbsCH.CondElse $3 $5 $7 
+  (Just (tokenLineCol $1), AbsCH.CondElse (Just (tokenLineCol $1)) (snd $3)(snd $5)(snd $7)) 
 }
 | 'while' '(' Expr ')' Stmt {
-  AbsCH.While $3 $5 
+  (Just (tokenLineCol $1), AbsCH.While (Just (tokenLineCol $1)) (snd $3)(snd $5)) 
 }
 | 'print' '(' Expr ')' {
-  AbsCH.Print $3 
+  (Just (tokenLineCol $1), AbsCH.Print (Just (tokenLineCol $1)) (snd $3)) 
 }
 | Expr ';' {
-  AbsCH.SExp $1 
+  (fst $1, AbsCH.SExp (fst $1)(snd $1)) 
 }
 
 Block :: {
-  Block 
+  (Maybe (Int, Int), Block (Maybe (Int, Int)))
 }
 : '{' ListStmt '}' {
-  AbsCH.Block (reverse $2)
+  (Just (tokenLineCol $1), AbsCH.Block (Just (tokenLineCol $1)) (reverse (snd $2)))
 }
 
 ListStmt :: {
-  [Stmt]
+  (Maybe (Int, Int), [Stmt (Maybe (Int, Int))]) 
 }
 : {
-  [] 
+  (Nothing, [])
 }
 | ListStmt Stmt {
-  flip (:) $1 $2 
+  (fst $1, flip (:) (snd $1)(snd $2)) 
 }
 
 Item :: {
-  Item 
+  (Maybe (Int, Int), Item (Maybe (Int, Int)))
 }
 : Ident {
-  AbsCH.NoInit $1 
+  (fst $1, AbsCH.NoInit (fst $1)(snd $1)) 
 }
 | Ident '=' Expr {
-  AbsCH.Init $1 $3 
+  (fst $1, AbsCH.Init (fst $1)(snd $1)(snd $3)) 
 }
 
 ListItem :: {
-  [Item]
+  (Maybe (Int, Int), [Item (Maybe (Int, Int))]) 
 }
 : Item {
-  (:[]) $1 
+  (fst $1, (:[]) (snd $1)) 
 }
 | Item ',' ListItem {
-  (:) $1 $3 
+  (fst $1, (:) (snd $1)(snd $3)) 
 }
 
 Type :: {
-  Type 
+  (Maybe (Int, Int), Type (Maybe (Int, Int)))
 }
 : 'int' {
-  AbsCH.Int 
+  (Just (tokenLineCol $1), AbsCH.Int (Just (tokenLineCol $1)))
 }
 | 'string' {
-  AbsCH.Str 
+  (Just (tokenLineCol $1), AbsCH.Str (Just (tokenLineCol $1)))
 }
 | 'boolean' {
-  AbsCH.Bool 
+  (Just (tokenLineCol $1), AbsCH.Bool (Just (tokenLineCol $1)))
 }
 | 'void' {
-  AbsCH.Void 
+  (Just (tokenLineCol $1), AbsCH.Void (Just (tokenLineCol $1)))
 }
 | 'fun' Type '(' ListType ')' {
-  AbsCH.Fun $2 $4 
+  (Just (tokenLineCol $1), AbsCH.Fun (Just (tokenLineCol $1)) (snd $2)(snd $4)) 
 }
 
 ListType :: {
-  [Type]
+  (Maybe (Int, Int), [Type (Maybe (Int, Int))]) 
 }
 : {
-  [] 
+  (Nothing, [])
 }
 | Type {
-  (:[]) $1 
+  (fst $1, (:[]) (snd $1)) 
 }
 | Type ',' ListType {
-  (:) $1 $3 
+  (fst $1, (:) (snd $1)(snd $3)) 
 }
 
 Expr6 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Ident {
-  AbsCH.EVar $1 
+  (fst $1, AbsCH.EVar (fst $1)(snd $1)) 
 }
 | Integer {
-  AbsCH.ELitInt $1 
+  (fst $1, AbsCH.ELitInt (fst $1)(snd $1)) 
 }
 | 'true' {
-  AbsCH.ELitTrue 
+  (Just (tokenLineCol $1), AbsCH.ELitTrue (Just (tokenLineCol $1)))
 }
 | 'false' {
-  AbsCH.ELitFalse 
+  (Just (tokenLineCol $1), AbsCH.ELitFalse (Just (tokenLineCol $1)))
 }
 | Ident '(' ListExpr ')' {
-  AbsCH.EApp $1 $3 
+  (fst $1, AbsCH.EApp (fst $1)(snd $1)(snd $3)) 
 }
 | String {
-  AbsCH.EString $1 
+  (fst $1, AbsCH.EString (fst $1)(snd $1)) 
 }
 | '(' Expr ')' {
-  $2 
+  (Just (tokenLineCol $1), snd $2)
 }
 
 Expr5 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : '-' Expr6 {
-  AbsCH.Neg $2 
+  (Just (tokenLineCol $1), AbsCH.Neg (Just (tokenLineCol $1)) (snd $2)) 
 }
 | '!' Expr6 {
-  AbsCH.Not $2 
+  (Just (tokenLineCol $1), AbsCH.Not (Just (tokenLineCol $1)) (snd $2)) 
 }
 | Expr6 {
-  $1 
+  (fst $1, snd $1)
 }
 
 Expr4 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Expr4 MulOp Expr5 {
-  AbsCH.EMul $1 $2 $3 
+  (fst $1, AbsCH.EMul (fst $1)(snd $1)(snd $2)(snd $3)) 
 }
 | Expr5 {
-  $1 
+  (fst $1, snd $1)
 }
 
 Expr3 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Expr3 AddOp Expr4 {
-  AbsCH.EAdd $1 $2 $3 
+  (fst $1, AbsCH.EAdd (fst $1)(snd $1)(snd $2)(snd $3)) 
 }
 | Expr4 {
-  $1 
+  (fst $1, snd $1)
 }
 
 Expr2 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Expr2 RelOp Expr3 {
-  AbsCH.ERel $1 $2 $3 
+  (fst $1, AbsCH.ERel (fst $1)(snd $1)(snd $2)(snd $3)) 
 }
 | Expr3 {
-  $1 
+  (fst $1, snd $1)
 }
 
 Expr1 :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Expr2 '&&' Expr1 {
-  AbsCH.EAnd $1 $3 
+  (fst $1, AbsCH.EAnd (fst $1)(snd $1)(snd $3)) 
 }
 | Expr2 {
-  $1 
+  (fst $1, snd $1)
 }
 
 Expr :: {
-  Expr 
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Expr1 '||' Expr {
-  AbsCH.EOr $1 $3 
+  (fst $1, AbsCH.EOr (fst $1)(snd $1)(snd $3)) 
 }
 | Expr1 {
-  $1 
+  (fst $1, snd $1)
 }
 
 ListExpr :: {
-  [Expr]
+  (Maybe (Int, Int), [Expr (Maybe (Int, Int))]) 
 }
 : {
-  [] 
+  (Nothing, [])
 }
 | Expr {
-  (:[]) $1 
+  (fst $1, (:[]) (snd $1)) 
 }
 | Expr ',' ListExpr {
-  (:) $1 $3 
+  (fst $1, (:) (snd $1)(snd $3)) 
 }
 
 AddOp :: {
-  AddOp 
+  (Maybe (Int, Int), AddOp (Maybe (Int, Int)))
 }
 : '+' {
-  AbsCH.Plus 
+  (Just (tokenLineCol $1), AbsCH.Plus (Just (tokenLineCol $1)))
 }
 | '-' {
-  AbsCH.Minus 
+  (Just (tokenLineCol $1), AbsCH.Minus (Just (tokenLineCol $1)))
 }
 
 MulOp :: {
-  MulOp 
+  (Maybe (Int, Int), MulOp (Maybe (Int, Int)))
 }
 : '*' {
-  AbsCH.Times 
+  (Just (tokenLineCol $1), AbsCH.Times (Just (tokenLineCol $1)))
 }
 | '/' {
-  AbsCH.Div 
+  (Just (tokenLineCol $1), AbsCH.Div (Just (tokenLineCol $1)))
 }
 | '%' {
-  AbsCH.Mod 
+  (Just (tokenLineCol $1), AbsCH.Mod (Just (tokenLineCol $1)))
 }
 
 RelOp :: {
-  RelOp 
+  (Maybe (Int, Int), RelOp (Maybe (Int, Int)))
 }
 : '<' {
-  AbsCH.LTH 
+  (Just (tokenLineCol $1), AbsCH.LTH (Just (tokenLineCol $1)))
 }
 | '<=' {
-  AbsCH.LE 
+  (Just (tokenLineCol $1), AbsCH.LE (Just (tokenLineCol $1)))
 }
 | '>' {
-  AbsCH.GTH 
+  (Just (tokenLineCol $1), AbsCH.GTH (Just (tokenLineCol $1)))
 }
 | '>=' {
-  AbsCH.GE 
+  (Just (tokenLineCol $1), AbsCH.GE (Just (tokenLineCol $1)))
 }
 | '==' {
-  AbsCH.EQU 
+  (Just (tokenLineCol $1), AbsCH.EQU (Just (tokenLineCol $1)))
 }
 | '!=' {
-  AbsCH.NE 
+  (Just (tokenLineCol $1), AbsCH.NE (Just (tokenLineCol $1)))
 }
 
 {
@@ -386,6 +386,6 @@ happyError ts =
 
 myLexer = tokens
 
-
+pProgram = (>>= return . snd) . pProgram_internal
 }
 
