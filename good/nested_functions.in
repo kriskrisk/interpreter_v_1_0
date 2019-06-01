@@ -1,0 +1,18 @@
+// Nested functions
+int foo(int q) {
+	q++;
+
+	int nested_foo(int p) {
+		p++;
+		return foo(p);
+	}
+
+	if (q < 10) {
+		return nested_foo(q);
+	}
+
+	return q;
+}
+
+print("Should print 10:");
+print(foo(1));

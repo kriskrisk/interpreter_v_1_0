@@ -21,7 +21,7 @@ import TypesDef
 instance Show Value where
   show (IntVal x) = show x
   show (BoolVal x) = show x
-  show (StrVal x) = show x
+  show (StrVal x) = show $ tail $ init x
   show VoidVal = "<void value>"
   show (FunVal _ _) = "<some function>"
   show (RetFun _) = "<return function>"
