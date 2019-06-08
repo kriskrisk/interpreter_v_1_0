@@ -222,7 +222,7 @@ ListType :: {
   (fst $1, (:) (snd $1)(snd $3)) 
 }
 
-Expr6 :: {
+Expr7 :: {
   (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : Ident {
@@ -247,7 +247,7 @@ Expr6 :: {
   (Just (tokenLineCol $1), snd $2)
 }
 
-Expr5 :: {
+Expr6 :: {
   (Maybe (Int, Int), Expr (Maybe (Int, Int)))
 }
 : '-' Expr6 {
@@ -255,6 +255,16 @@ Expr5 :: {
 }
 | '!' Expr6 {
   (Just (tokenLineCol $1), AbsCH.Not (Just (tokenLineCol $1)) (snd $2)) 
+}
+| Expr7 {
+  (fst $1, snd $1)
+}
+
+Expr5 :: {
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
+}
+: '!' Type '(' ListArg ')' Block {
+  (Just (tokenLineCol $1), AbsCH.Anon (Just (tokenLineCol $1)) (snd $2)(snd $4)(snd $6)) 
 }
 | Expr6 {
   (fst $1, snd $1)

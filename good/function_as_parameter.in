@@ -1,0 +1,27 @@
+int foo(int in) {
+	return in + 5;
+}
+print("Should print 11:");
+print(foo(6));
+
+fun int (int) test_function = foo;
+print("Should print 8:");
+print(test_function(3));
+
+int foo2(int a, fun int (int) other_function) {
+	return other_function(a + 1);
+}
+print("Should print 9:");
+print(foo2(3, foo));
+
+fun int (int, int) foo4() {
+	int foo5(int a, int b) {
+		return a + b + 1;
+	}
+
+	return foo5;
+}
+
+fun int (int, int) test_return = foo4();
+print("Should print 3:");
+print(test_return(1, 1));

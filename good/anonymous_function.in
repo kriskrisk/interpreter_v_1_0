@@ -1,0 +1,16 @@
+# Anonymous function returned by a function:
+fun int (int, int) foo() {
+	return ! int (int a, int b) {return a + b + 1;};
+}
+
+fun int (int, int) test = foo();
+print("Should print 4:");
+print(test(1, 2));
+
+# Anonymous function passed as an argument to a function:
+int foo(fun int (int) anon) {
+	return anon(3) + 1;
+}
+
+print("Should print 7:");
+print(foo(! int (int a) {return a * 2;}));

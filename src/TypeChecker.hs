@@ -142,13 +142,31 @@ checkExpr (EOr pos e1 e2) = do
       else throwErr (getExprPos e2) "not a boolean expressions"
     else throwErr (getExprPos e1) "not a boolean expressions"
 
+checkExpr (Anon pos retT args (Block bPos body)) = do
+  case (checkForRet retT body) of
+    True -> do
+      local (Map.insert (Ident "$retType$") retT) $ foldr declareArg (checkStmts body) args
+      return $ Fun pos retT (map extractArgType args)
+    False -> throwErr bPos "missing return statement"
+
+-- Checks if return sttement isn't missing.
+checkForRet :: Type Pos -> [Stmt Pos] -> Bool
+checkForRet (Void _) _ = True
+checkForRet _ [] = False
+checkForRet _ (Ret _ _:stmts) = True
+checkForRet t (_:stmts) = checkForRet t stmts
+
+extractArgType :: Arg Pos -> Type Pos
+extractArgType (Arg _ t _) = t
+extractArgType (RefArg _ t _) = t
+
 declareItem :: Type Pos -> Item Pos -> TypeMonad () -> TypeMonad ()
 declareItem t (Init pos ident e) m = do
   t' <- checkExpr e
   case (t' == t) of
     True -> do
       local (Map.insert ident t) m
-    otherwise -> throwErr pos "wrong expression type"
+    otherwise -> throwErr (getExprPos e) "wrong expression type"
 declareItem t (NoInit _ ident) m = local (Map.insert ident t) m
 
 declareArg :: Arg Pos -> TypeMonad () -> TypeMonad ()
@@ -163,10 +181,13 @@ getArgType (RefArg _ t _) = t
 
 checkStmts :: [Stmt Pos] -> TypeMonad ()
 checkStmts [] = pure ()
-checkStmts ((FnDef _ retT ident args (Block _ body)) : rest) = do
-  local (Map.insert ident (Fun Nothing retT (map getArgType args))) $ do
-    local (Map.insert (Ident "$retType$") retT) $ foldr declareArg (checkStmts body) args
-    checkStmts rest
+checkStmts ((FnDef pos retT ident args (Block bPos body)) : rest) = do
+  case (checkForRet retT body) of
+    True -> do
+      local (Map.insert ident (Fun pos retT (map getArgType args))) $ do
+        local (Map.insert (Ident "$retType$") retT) $ foldr declareArg (checkStmts body) args
+        checkStmts rest
+    False -> throwErr bPos "missing return statement"
 checkStmts ((Decl _ t decls) : rest) = foldr (declareItem t) (checkStmts rest) decls
 checkStmts (stmt : stmts) = checkStmt stmt >> checkStmts stmts
 

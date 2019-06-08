@@ -72,15 +72,15 @@ data Type a
   deriving (Ord, Show, Read)
 
 instance Eq (Type a) where
-    (Int _) == (Int _) = True
-    (Str _) == (Str _) = True
-    (Bool _) == (Bool _) = True
-    (Void _) == (Void _) = True
-    (Fun _ retTL argsTL) == (Fun _ retTR argsTR) =
-      if retTL == retTR && argsTL == argsTR
-        then True
-        else False
-    _ == _ = False
+  (Int _) == (Int _) = True
+  (Str _) == (Str _) = True
+  (Bool _) == (Bool _) = True
+  (Void _) == (Void _) = True
+  (Fun _ retTL argsTL) == (Fun _ retTR argsTR) =
+    if retTL == retTR && argsTL == argsTR
+      then True
+      else False
+  _ == _ = False
 
 instance Functor Type where
     fmap f x = case x of
@@ -98,6 +98,7 @@ data Expr a
     | EString a String
     | Neg a (Expr a)
     | Not a (Expr a)
+    | Anon a (Type a) [Arg a] (Block a)
     | EMul a (Expr a) (MulOp a) (Expr a)
     | EAdd a (Expr a) (AddOp a) (Expr a)
     | ERel a (Expr a) (RelOp a) (Expr a)
@@ -115,6 +116,7 @@ instance Functor Expr where
         EString a string -> EString (f a) string
         Neg a expr -> Neg (f a) (fmap f expr)
         Not a expr -> Not (f a) (fmap f expr)
+        Anon a type_ args block -> Anon (f a) (fmap f type_) (map (fmap f) args) (fmap f block)
         EMul a expr1 mulop expr2 -> EMul (f a) (fmap f expr1) (fmap f mulop) (fmap f expr2)
         EAdd a expr1 addop expr2 -> EAdd (f a) (fmap f expr1) (fmap f addop) (fmap f expr2)
         ERel a expr1 relop expr2 -> ERel (f a) (fmap f expr1) (fmap f relop) (fmap f expr2)

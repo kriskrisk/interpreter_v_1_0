@@ -1,2 +1,2 @@
 // Bad syntax
-string string_val = hi!;
+string string_val = hi;

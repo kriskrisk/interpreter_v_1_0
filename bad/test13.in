@@ -1,0 +1,9 @@
+void foo(int in) {
+	int tmp = 0;
+	tmp ++;
+}
+
+int foo(int in) {
+	int tmp = 0;
+	tmp ++;
+}

@@ -59,6 +59,7 @@ transExpr x = case x of
   EString _ string -> failure x
   Neg _ expr -> failure x
   Not _ expr -> failure x
+  Anon _ type_ args block -> failure x
   EMul _ expr1 mulop expr2 -> failure x
   EAdd _ expr1 addop expr2 -> failure x
   ERel _ expr1 relop expr2 -> failure x

@@ -1,0 +1,8 @@
+// Passing rvalue as reference:
+int to_change = 1;
+void changer(int & a, int & b) {
+	a++;
+	b++;
+}
+
+changer(to_change, 2);
