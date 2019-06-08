@@ -49,3 +49,4 @@ Przykładowe programy znajdują się w plikach `.in` w katalogu good.
 * pętla while
 * konstrukcja warunkowa if
 * funkcje z możliwością przekazania argumentów przez zmienną i przez wartość
+* funkcje wyższego rzędu i funkcje anonimowe
