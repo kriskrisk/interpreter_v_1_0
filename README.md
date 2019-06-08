@@ -28,7 +28,7 @@
 14. [-] (1 pkt, tablice/listy)
 15. [-] (2 pkt, krotki z przypisaniem)
 16. [-] (1 pkt, break, continue)
-17. [todo] (4 pkt, funkcje wyższego rzędu, anonimowe, domknięcia)
+17. [+] (4 pkt, funkcje wyższego rzędu, anonimowe, domknięcia)
 18. [-] (3 pkt, generatory)
 
 ### Razem: 30 punktów
