@@ -125,7 +125,7 @@ instance Print (Item a) where
 instance Print (ArgT a) where
   prt i e = case e of
     ValArgT _ type_ -> prPrec i 0 (concatD [prt 0 type_])
-    RefArgT _ type_ -> prPrec i 0 (concatD [prt 0 type_])
+    RefArgT _ type_ -> prPrec i 0 (concatD [prt 0 type_, doc (showString "&")])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])

@@ -196,7 +196,7 @@ ArgT :: {
 : Type {
   (fst $1, AbsCH.ValArgT (fst $1)(snd $1)) 
 }
-| Type {
+| Type '&' {
   (fst $1, AbsCH.RefArgT (fst $1)(snd $1)) 
 }
 

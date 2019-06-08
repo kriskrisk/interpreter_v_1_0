@@ -28,7 +28,7 @@ instance Show Value where
   show (RetFun _) = "<return function>"
 
 evalArg :: (Bool, Expr Pos) -> MyMonad FunArg
-evalArg (True, (EVar pos ident)) = do
+evalArg (True, EVar pos ident) = do
   Just ref <- asks $ Map.lookup ident
   return $ RefVal ref
 evalArg (_, expr) = do
@@ -125,13 +125,13 @@ incIntVal (IntVal i) = IntVal (i + 1)
 applyToInt :: (Integer -> Integer) -> Value -> Value
 applyToInt fun (IntVal i) = IntVal (fun i)
 
-insertPair :: Env -> (Arg Pos, (IORef Value)) -> Env
+insertPair :: Env -> (Arg Pos, IORef Value) -> Env
 insertPair m (Arg _ _ ident, val) = Map.insert ident val m
 insertPair m (RefArg _ _ ident, val) = Map.insert ident val m
 
 isRef :: Arg Pos -> Bool
-isRef (Arg _ _ _) = False
-isRef (RefArg _ _ _) = True
+isRef Arg{} = False
+isRef RefArg{} = True
 
 addIORef :: FunArg -> MyMonad (IORef Value)
 addIORef (Val val) = liftIO $ newIORef val
@@ -161,13 +161,13 @@ loop expr stmt = do
 
 interpretStmts :: [Stmt Pos] -> MyMonad ()
 interpretStmts [] = pure ()
-interpretStmts ((FnDef _ _ ident args (Block _ body)) : rest) = do
+interpretStmts (FnDef _ _ ident args (Block _ body) : rest) = do
   defFun <- liftIO $ newIORef Undefined
   local (Map.insert ident defFun) $ do
     env <- ask
     liftIO $ writeIORef defFun $ createFun env args body
     interpretStmts rest
-interpretStmts ((Decl _ _ decls) : rest) = foldr declare (interpretStmts rest) decls
+interpretStmts (Decl _ _ decls : rest) = foldr declare (interpretStmts rest) decls
 interpretStmts (stmt : stmts) = interpretStmt stmt >> interpretStmts stmts
 
 interpretStmt :: Stmt Pos -> MyMonad ()
@@ -178,7 +178,7 @@ interpretStmt (BStmt _ (Block _ stmts)) = interpretStmts stmts
 interpretStmt (Ass _ ident expr) = do
   Just ioref <- asks (Map.lookup ident)
   val <- evalExpr expr
-  liftIO . modifyIORef' ioref $ \_ -> val
+  liftIO . modifyIORef' ioref $ const val
 
 interpretStmt (Incr _ ident) = do
   Just ioref <- asks (Map.lookup ident)
@@ -215,7 +215,7 @@ interpretStmt (While _ expr stmt) = loop expr stmt
 
 interpretStmt (Print _ expr) = do
   val <- evalExpr expr
-  liftIO $ print $ val
+  liftIO $ print val
 
 interpretStmt (SExp _ expr) = do
   val <- evalExpr expr

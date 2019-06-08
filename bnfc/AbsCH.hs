@@ -79,6 +79,7 @@ instance Eq (ArgT a) where
       if tL == tR
         then True
         else False
+    _ == _ = False
 
 instance Functor ArgT where
     fmap f x = case x of

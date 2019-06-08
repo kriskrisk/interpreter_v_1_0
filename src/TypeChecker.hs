@@ -25,6 +25,7 @@ getExprPos x = case x of
     EString a _ -> a
     Neg a _ -> a
     Not a _ -> a
+    Anon a _ _ _ -> a
     EMul a _ _ _ -> a
     EAdd a _ _ _ -> a
     ERel a _ _ _ -> a
@@ -57,7 +58,7 @@ getIdentType pos ident = do
   res <- asks (Map.lookup ident)
   case res of
     (Just t) -> return t
-    otherwise -> throwErr pos "referenced identificator is not declared"
+    _ -> throwErr pos "referenced identificator is not declared"
 
 checkArg :: (ArgT Pos, Expr Pos) -> TypeMonad ()
 checkArg (tArg, expr) = do
@@ -70,7 +71,27 @@ checkArg (tArg, expr) = do
       (EVar _ _) -> if t == t'
         then pure ()
         else throwErr (getExprPos expr) "bad argument type"
-      otherwise -> throwErr (getExprPos expr) "expresion is not lvalue"
+      _ -> throwErr (getExprPos expr) "expresion is not lvalue"
+
+checkArithmeticalExpr :: Pos -> Expr Pos -> Expr Pos -> TypeMonad (Type Pos)
+checkArithmeticalExpr pos e1 e2 = do
+  t1 <- checkExpr e1
+  t2 <- checkExpr e2
+  if t1 == int
+    then if t2 == int
+      then return int
+      else throwErr (getExprPos e2) "not an integer"
+    else throwErr (getExprPos e1) "not an integer"
+
+checkBooleanExpr :: Expr Pos -> Expr Pos -> TypeMonad (Type Pos)
+checkBooleanExpr e1 e2= do
+  t1 <- checkExpr e1
+  t2 <- checkExpr e2
+  if t1 == bool
+    then if t2 == bool
+      then return bool
+      else throwErr (getExprPos e2) "not a boolean expressions"
+    else throwErr (getExprPos e1) "not a boolean expressions"
 
 checkExpr :: Expr Pos -> TypeMonad (Type Pos)
 checkExpr (ELitInt _ _) = return int
@@ -84,9 +105,9 @@ checkExpr (EApp pos ident args) = do
   t <- getIdentType pos ident
   case t of
     Fun _ tRet tArgs -> do
-      mapM checkArg (zip tArgs args)
+      mapM_ checkArg (zip tArgs args)
       return tRet
-    otherwise -> throwErr pos "not applicable"
+    _ -> throwErr pos "not applicable"
 
 checkExpr (EString _ s) = return str
 
@@ -96,23 +117,9 @@ checkExpr (Neg pos e) = do
     then return int
     else throwErr (getExprPos e) "not an integer"
 
-checkExpr (EMul pos e1 op e2) = do
-  t1 <- checkExpr e1
-  t2 <- checkExpr e2
-  if t1 == int
-    then if t2 == int
-      then return int
-      else throwErr (getExprPos e2) "not an integer"
-    else throwErr (getExprPos e1) "not an integer"
+checkExpr (EMul pos e1 _ e2) = checkArithmeticalExpr pos e1 e2
 
-checkExpr (EAdd pos e1 op e2) = do
-  t1 <- checkExpr e1
-  t2 <- checkExpr e2
-  if t1 == int
-    then if t2 == int
-      then return int
-      else throwErr (getExprPos e2) "not an integer"
-    else throwErr (getExprPos e1) "not an integer"
+checkExpr (EAdd pos e1 op e2) = checkArithmeticalExpr pos e1 e2
 
 checkExpr (ERel pos e1 op e2) = do
   t1 <- checkExpr e1
@@ -123,37 +130,22 @@ checkExpr (ERel pos e1 op e2) = do
       Bool _ -> case op of
         EQU _ -> return bool
         NE _ -> return bool
-        otherwise -> throwErr (getOpPos op) "relation operation not allowed on boolean expressions"
+        _ -> throwErr (getOpPos op) "relation operation not allowed on boolean expressions"
       Str _ -> case op of
         EQU _ -> return bool
         NE _ -> return bool
-        otherwise -> throwErr (getOpPos op) "relation operation not allowed on strings"
+        _ -> throwErr (getOpPos op) "relation operation not allowed on strings"
     else throwErr pos "relation operation on expressions of different type"
 
-checkExpr (EAnd pos e1 e2) = do
-  t1 <- checkExpr e1
-  t2 <- checkExpr e2
-  if t1 == bool
-    then if t2 == bool
-      then return bool
-      else throwErr (getExprPos e2) "not a boolean expressions"
-    else throwErr (getExprPos e1) "not a boolean expressions"
+checkExpr (EAnd _ e1 e2) = checkBooleanExpr e1 e2
 
-checkExpr (EOr pos e1 e2) = do
-  t1 <- checkExpr e1
-  t2 <- checkExpr e2
-  if t1 == bool
-    then if t2 == bool
-      then return bool
-      else throwErr (getExprPos e2) "not a boolean expressions"
-    else throwErr (getExprPos e1) "not a boolean expressions"
+checkExpr (EOr _ e1 e2) = checkBooleanExpr e1 e2
 
-checkExpr (Anon pos retT args (Block bPos body)) = do
-  case (checkForRet retT body) of
-    True -> do
-      local (Map.insert (Ident "$retType$") retT) $ foldr declareArg (checkStmts body) args
-      return $ Fun pos retT (map getArgType args)
-    False -> throwErr bPos "missing return statement"
+checkExpr (Anon pos retT args (Block bPos body)) = if checkForRet retT body
+  then do
+    local (Map.insert (Ident "$retType$") retT) $ foldr declareArg (checkStmts body) args
+    return $ Fun pos retT (map getArgType args)
+  else throwErr bPos "missing return statement"
 
 -- Checks if return sttement isn't missing.
 checkForRet :: Type Pos -> [Stmt Pos] -> Bool
@@ -165,17 +157,14 @@ checkForRet t (_:stmts) = checkForRet t stmts
 declareItem :: Type Pos -> Item Pos -> TypeMonad () -> TypeMonad ()
 declareItem t (Init pos ident e) m = do
   t' <- checkExpr e
-  case (t' == t) of
-    True -> do
-      local (Map.insert ident t) m
-    otherwise -> throwErr (getExprPos e) "wrong expression type"
+  if t' == t
+    then local (Map.insert ident t) m
+    else throwErr (getExprPos e) "wrong expression type"
 declareItem t (NoInit _ ident) m = local (Map.insert ident t) m
 
 declareArg :: Arg Pos -> TypeMonad () -> TypeMonad ()
-declareArg (Arg _ t ident) m = do
-  local (Map.insert ident t) m
-declareArg (RefArg _ t ident) m = do
-  local (Map.insert ident t) m
+declareArg (Arg _ t ident) m = local (Map.insert ident t) m
+declareArg (RefArg _ t ident) m = local (Map.insert ident t) m
 
 getArgType :: Arg Pos -> ArgT Pos
 getArgType (Arg pos t _) = ValArgT pos t
@@ -183,14 +172,12 @@ getArgType (RefArg pos t _) = RefArgT pos t
 
 checkStmts :: [Stmt Pos] -> TypeMonad ()
 checkStmts [] = pure ()
-checkStmts ((FnDef pos retT ident args (Block bPos body)) : rest) = do
-  case (checkForRet retT body) of
-    True -> do
-      local (Map.insert ident (Fun pos retT (map getArgType args))) $ do
-        local (Map.insert (Ident "$retType$") retT) $ foldr declareArg (checkStmts body) args
-        checkStmts rest
-    False -> throwErr bPos "missing return statement"
-checkStmts ((Decl _ t decls) : rest) = foldr (declareItem t) (checkStmts rest) decls
+checkStmts (FnDef pos retT ident args (Block bPos body) : rest) = if checkForRet retT body
+  then local (Map.insert ident (Fun pos retT (map getArgType args))) $ do
+    local (Map.insert (Ident "$retType$") retT) $ foldr declareArg (checkStmts body) args
+    checkStmts rest
+  else throwErr bPos "missing return statement"
+checkStmts (Decl _ t decls : rest) = foldr (declareItem t) (checkStmts rest) decls
 checkStmts (stmt : stmts) = checkStmt stmt >> checkStmts stmts
 
 checkStmt :: Stmt Pos -> TypeMonad ()
@@ -258,5 +245,5 @@ checkStmt (SExp _ expr) = do
   checkExpr expr
   pure ()
 
-checkProg :: (Program Pos) -> IO (Either String ())
+checkProg :: Program Pos -> IO (Either String ())
 checkProg (Program _ stmts) = runExceptT (runReaderT (checkStmts stmts) Map.empty)
