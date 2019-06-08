@@ -80,11 +80,16 @@ All other symbols are terminals.
   |  |  **|**  | //Ident// ``=`` //Expr// 
   | //[Item]// | -> | //Item// 
   |  |  **|**  | //Item// ``,`` //[Item]// 
+  | //ArgT// | -> | //Type// 
+  |  |  **|**  | //Type// 
+  | //[ArgT]// | -> | **eps**
+  |  |  **|**  | //ArgT// 
+  |  |  **|**  | //ArgT// ``,`` //[ArgT]// 
   | //Type// | -> | ``int`` 
   |  |  **|**  | ``string`` 
   |  |  **|**  | ``boolean`` 
   |  |  **|**  | ``void`` 
-  |  |  **|**  | ``fun`` //Type// ``(`` //[Type]// ``)`` 
+  |  |  **|**  | ``fun`` //Type// ``(`` //[ArgT]// ``)`` 
   | //[Type]// | -> | **eps**
   |  |  **|**  | //Type// 
   |  |  **|**  | //Type// ``,`` //[Type]// 

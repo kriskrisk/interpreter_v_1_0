@@ -1,5 +1,6 @@
 module Interpreter where
 
+import System.IO
 import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -223,8 +224,7 @@ interpretStmt (SExp _ expr) = do
 
 printResult :: Either String () -> IO ()
 printResult res = case res of
-  Left errMsg -> do
-    print errMsg
+  Left errMsg -> hPutStrLn stderr errMsg
   Right _ -> pure ()
 
 interpretProg :: Program Pos -> IO ()

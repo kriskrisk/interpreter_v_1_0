@@ -14,13 +14,13 @@ import TypeChecker
 
 
 main = do
-  args <- getArgs   -- TODO: Add case of missing file to interpret
+  args <- getArgs
   fd <- openFile (head args) ReadMode
   program <- hGetContents fd
   case pProgram (myLexer program) of
-    Bad errMsg -> print errMsg
+    Bad errMsg -> hPutStrLn stderr errMsg
     Ok prog -> do
       res <- checkProg prog
       case res of
-        Left errMsg -> print errMsg
+        Left errMsg -> hPutStrLn stderr errMsg
         Right _ -> interpretProg prog

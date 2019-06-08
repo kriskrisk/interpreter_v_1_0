@@ -42,13 +42,17 @@ transItem :: Show a => Item a -> Result
 transItem x = case x of
   NoInit _ ident -> failure x
   Init _ ident expr -> failure x
+transArgT :: Show a => ArgT a -> Result
+transArgT x = case x of
+  ValArgT _ type_ -> failure x
+  RefArgT _ type_ -> failure x
 transType :: Show a => Type a -> Result
 transType x = case x of
   Int _ -> failure x
   Str _ -> failure x
   Bool _ -> failure x
   Void _ -> failure x
-  Fun _ type_ types -> failure x
+  Fun _ type_ argts -> failure x
 transExpr :: Show a => Expr a -> Result
 transExpr x = case x of
   EVar _ ident -> failure x

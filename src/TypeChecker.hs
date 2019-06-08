@@ -59,12 +59,18 @@ getIdentType pos ident = do
     (Just t) -> return t
     otherwise -> throwErr pos "referenced identificator is not declared"
 
-checkArg :: (Type Pos, Expr Pos) -> TypeMonad ()
-checkArg (t, expr) = do
+checkArg :: (ArgT Pos, Expr Pos) -> TypeMonad ()
+checkArg (tArg, expr) = do
   t' <- checkExpr expr
-  if t == t'
-    then pure ()
-    else throwErr (getExprPos expr) "bad argument type"
+  case tArg of
+    (ValArgT _ t) -> if t == t'
+        then pure ()
+        else throwErr (getExprPos expr) "bad argument type"
+    (RefArgT _ t) -> case expr of
+      (EVar _ _) -> if t == t'
+        then pure ()
+        else throwErr (getExprPos expr) "bad argument type"
+      otherwise -> throwErr (getExprPos expr) "expresion is not lvalue"
 
 checkExpr :: Expr Pos -> TypeMonad (Type Pos)
 checkExpr (ELitInt _ _) = return int
@@ -146,7 +152,7 @@ checkExpr (Anon pos retT args (Block bPos body)) = do
   case (checkForRet retT body) of
     True -> do
       local (Map.insert (Ident "$retType$") retT) $ foldr declareArg (checkStmts body) args
-      return $ Fun pos retT (map extractArgType args)
+      return $ Fun pos retT (map getArgType args)
     False -> throwErr bPos "missing return statement"
 
 -- Checks if return sttement isn't missing.
@@ -155,10 +161,6 @@ checkForRet (Void _) _ = True
 checkForRet _ [] = False
 checkForRet _ (Ret _ _:stmts) = True
 checkForRet t (_:stmts) = checkForRet t stmts
-
-extractArgType :: Arg Pos -> Type Pos
-extractArgType (Arg _ t _) = t
-extractArgType (RefArg _ t _) = t
 
 declareItem :: Type Pos -> Item Pos -> TypeMonad () -> TypeMonad ()
 declareItem t (Init pos ident e) m = do
@@ -175,9 +177,9 @@ declareArg (Arg _ t ident) m = do
 declareArg (RefArg _ t ident) m = do
   local (Map.insert ident t) m
 
-getArgType :: Arg Pos -> Type Pos
-getArgType (Arg _ t _) = t
-getArgType (RefArg _ t _) = t
+getArgType :: Arg Pos -> ArgT Pos
+getArgType (Arg pos t _) = ValArgT pos t
+getArgType (RefArg pos t _) = RefArgT pos t
 
 checkStmts :: [Stmt Pos] -> TypeMonad ()
 checkStmts [] = pure ()

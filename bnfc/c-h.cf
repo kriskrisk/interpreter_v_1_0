@@ -50,6 +50,14 @@ Print.     Stmt ::= "print" "(" Expr ")" ;
 
 SExp.      Stmt ::= Expr  ";" ;
 
+-- argument types ------------------------------------------
+
+ValArgT.   ArgT ::= Type;
+
+RefArgT.   ArgT ::= Type;
+
+separator  ArgT "," ;
+
 -- Types ---------------------------------------------------
 
 Int.       Type ::= "int" ;
@@ -60,7 +68,7 @@ Bool.      Type ::= "boolean" ;
 
 Void.      Type ::= "void" ;
 
-Fun.       Type ::= "fun" Type "(" [Type] ")" ;
+Fun.       Type ::= "fun" Type "(" [ArgT] ")" ;
 
 separator  Type "," ;
 

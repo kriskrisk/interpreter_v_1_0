@@ -1,5 +1,0 @@
-DONE -> add check if there is a return statement in functions that need to return something (bad/test13.in)
-DONE -> add anonymous function in type checker
-DONE -> add evaluating anonymous functions
--> add reading program from stdin line by line
--> add check if reference is not rvalue (bad/test14.in)

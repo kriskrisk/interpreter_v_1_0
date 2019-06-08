@@ -67,20 +67,37 @@ instance Functor Item where
     fmap f x = case x of
         NoInit a ident -> NoInit (f a) ident
         Init a ident expr -> Init (f a) ident (fmap f expr)
+data ArgT a = ValArgT a (Type a) | RefArgT a (Type a)
+  deriving (Ord, Show, Read)
+
+instance Eq (ArgT a) where
+    (ValArgT _ tL) == (ValArgT _ tR) =
+      if tL == tR
+        then True
+        else False
+    (RefArgT _ tL) == (RefArgT _ tR) =
+      if tL == tR
+        then True
+        else False
+
+instance Functor ArgT where
+    fmap f x = case x of
+        ValArgT a type_ -> ValArgT (f a) (fmap f type_)
+        RefArgT a type_ -> RefArgT (f a) (fmap f type_)
 data Type a
-    = Int a | Str a | Bool a | Void a | Fun a (Type a) [Type a]
+    = Int a | Str a | Bool a | Void a | Fun a (Type a) [ArgT a]
   deriving (Ord, Show, Read)
 
 instance Eq (Type a) where
-  (Int _) == (Int _) = True
-  (Str _) == (Str _) = True
-  (Bool _) == (Bool _) = True
-  (Void _) == (Void _) = True
-  (Fun _ retTL argsTL) == (Fun _ retTR argsTR) =
-    if retTL == retTR && argsTL == argsTR
-      then True
-      else False
-  _ == _ = False
+    (Int _) == (Int _) = True
+    (Str _) == (Str _) = True
+    (Bool _) == (Bool _) = True
+    (Void _) == (Void _) = True
+    (Fun _ retTL argsTL) == (Fun _ retTR argsTR) =
+      if retTL == retTR && argsTL == argsTR
+        then True
+        else False
+    _ == _ = False
 
 instance Functor Type where
     fmap f x = case x of
@@ -88,7 +105,7 @@ instance Functor Type where
         Str a -> Str (f a)
         Bool a -> Bool (f a)
         Void a -> Void (f a)
-        Fun a type_ types -> Fun (f a) (fmap f type_) (map (fmap f) types)
+        Fun a type_ argts -> Fun (f a) (fmap f type_) (map (fmap f) argts)
 data Expr a
     = EVar a Ident
     | ELitInt a Integer

@@ -190,6 +190,29 @@ ListItem :: {
   (fst $1, (:) (snd $1)(snd $3)) 
 }
 
+ArgT :: {
+  (Maybe (Int, Int), ArgT (Maybe (Int, Int)))
+}
+: Type {
+  (fst $1, AbsCH.ValArgT (fst $1)(snd $1)) 
+}
+| Type {
+  (fst $1, AbsCH.RefArgT (fst $1)(snd $1)) 
+}
+
+ListArgT :: {
+  (Maybe (Int, Int), [ArgT (Maybe (Int, Int))]) 
+}
+: {
+  (Nothing, [])
+}
+| ArgT {
+  (fst $1, (:[]) (snd $1)) 
+}
+| ArgT ',' ListArgT {
+  (fst $1, (:) (snd $1)(snd $3)) 
+}
+
 Type :: {
   (Maybe (Int, Int), Type (Maybe (Int, Int)))
 }
@@ -205,7 +228,7 @@ Type :: {
 | 'void' {
   (Just (tokenLineCol $1), AbsCH.Void (Just (tokenLineCol $1)))
 }
-| 'fun' Type '(' ListType ')' {
+| 'fun' Type '(' ListArgT ')' {
   (Just (tokenLineCol $1), AbsCH.Fun (Just (tokenLineCol $1)) (snd $2)(snd $4)) 
 }
 
