@@ -104,9 +104,11 @@ checkExpr (ELitFalse _) = return bool
 checkExpr (EApp pos ident args) = do
   t <- getIdentType pos ident
   case t of
-    Fun _ tRet tArgs -> do
-      mapM_ checkArg (zip tArgs args)
-      return tRet
+    Fun _ tRet tArgs -> if length tArgs == length args
+      then do
+        mapM_ checkArg (zip tArgs args)
+        return tRet
+      else throwErr pos "wrong number of arguments"
     _ -> throwErr pos "not applicable"
 
 checkExpr (EString _ s) = return str
