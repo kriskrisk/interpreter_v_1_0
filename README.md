@@ -1,52 +1,19 @@
-# Język C-H
+# Interpreter for the language C-H
 
-## Tabelka punktowa
-* [+] - zaimplementowane
-* [-] - niezaimplementowane
-* [todo] - w planach
+C-H is a language designed by me as a university project. It's similar to C in terms of syntax. The main difference is that C-H is interpreted rather than compiled. Furthermore it is a scripting language. This project is an interpreter for language C-H. Examples of syntax can be found in `.in` files in `good` directory.
 
-### Na 15 punktów:
-1. [+] (trzy typy)
-2. [+] (literały, arytmetyka, porównania)
-3. [+] (zmienne, przypisanie)
-4. [+] (print)
-5. [+] (while, if)
-6. [+] (funkcje lub procedury, rekurencja)
-7.
-    - [+] (przez zmienną / przez wartość / in/out)
-    - [-] (zmienne read-only i pętla for)
+## Features
 
-### Na 20 punktów:
-8. [+] (przesłanianie i statyczne wiązanie)
-9. [+] (obsauga bałędów wykonania)
-10. [+] (funkcje zwracające wartość)
-
-### Na 30 punktów:
-11. [+] (4 pkt, statyczne typowanie)
-12. [+] (2 pkt, funkcje zagnieżdżone ze statycznym wiązaniem)
-13. [-] (1 pkt, rekordy)
-14. [-] (1 pkt, tablice/listy)
-15. [-] (2 pkt, krotki z przypisaniem)
-16. [-] (1 pkt, break, continue)
-17. [+] (4 pkt, funkcje wyższego rzędu, anonimowe, domknięcia)
-18. [-] (3 pkt, generatory)
-
-### Razem: 30 punktów
-
-## Ogólny opis
-
-Język C-H ma składię podobną do C. Główną różnicą jest brak funkcji main.
-Programy napisane w języku C-H są interpretowane od pierwszej linii pliku źródłowego, wyrażenie po wyrażeniu.
-Przykładowe programy znajdują się w plikach `.in` w katalogu good.
-
-
-## Główne aspekty języka
-
-* trzy prymitywne typy wartości: int, bool i string
-* operacje arytmetmetyczne, porównania
-* zmienne, operacja przypisania
-* wypisanie wartości na wyjście (funkcja print)
-* pętla while
-* konstrukcja warunkowa if
-* funkcje z możliwością przekazania argumentów przez zmienną i przez wartość
-* funkcje wyższego rzędu i funkcje anonimowe
+* three primitive types: `int`, `boolean`, `string`
+* `while` loop
+* `if` statement
+* built-in `print` function
+* higher order functions
+* anonymous function
+* nested function
+* recursion
+* variables, assignments
+* passing arguments by reference or by value
+* error handling
+* static binding
+* static type checking
