@@ -1,6 +1,6 @@
-# Interpreter for the language C-H
+# Interpreter for the C-H language
 
-C-H is a language designed by me as a university project. It's similar to C in terms of syntax. The main difference is that C-H is interpreted rather than compiled. Furthermore it is a scripting language. This project is an interpreter for language C-H. Examples of syntax can be found in `.in` files in `good` directory.
+C-H is a language designed by me as a university project. It's similar to C in terms of syntax. The main difference is that C-H is interpreted rather than compiled. Furthermore it is a scripting language. This project is an interpreter for C-H language. Examples of syntax can be found in `.in` files in `good` directory.
 
 ## Features
 
